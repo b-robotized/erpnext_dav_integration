@@ -1,0 +1,39 @@
+{
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  },
+  "parserOptions": {
+    "sourceType": "module"
+  },
+  "extends": "eslint:recommended",
+  "rules": {
+    "indent": "off",
+    "brace-style": "off",
+    "no-mixed-spaces-and-tabs": "off",
+    "no-useless-escape": "off",
+    "space-unary-ops": ["error", { "words": true }],
+    "linebreak-style": "off",
+    "quotes": ["off"],
+    "semi": "off",
+    "camelcase": "off",
+    "no-unused-vars": "off",
+    "no-console": ["warn"],
+    "no-extra-boolean-cast": ["off"],
+    "no-control-regex": ["off"]
+  },
+  "root": true,
+  "globals": {
+    "frappe": true,
+    "Vue": true,
+    "__": true,
+    "cur_frm": true,
+    "cur_dialog": true,
+    "cur_page": true,
+    "cur_list": true,
+    "$": true,
+    "jQuery": true,
+    "moment": true
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "doctype": "DocType",
+  "name": "DAV Account",
+  "module": "DAV Integration",
+  "custom": 0,
+  "is_submittable": 0,
+  "is_tree": 0,
+  "is_single": 0,
+  "autoname": "hash",
+  "title_field": "base_url",
+  "fields": [
+    {
+      "fieldname": "enabled",
+      "label": "Enabled",
+      "fieldtype": "Check",
+      "default": 1
+    },
+    {
+      "fieldname": "user",
+      "label": "User",
+      "fieldtype": "Link",
+      "options": "User"
+    },
+    {
+      "fieldname": "section_auth",
+      "label": "Connection",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "base_url",
+      "label": "Base URL",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "description": "e.g. https://cloud.example.com"
+    },
+    {
+      "fieldname": "username",
+      "label": "Username",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "auth_type",
+      "label": "Auth Type",
+      "fieldtype": "Select",
+      "options": "App Password\nBasic",
+      "default": "App Password"
+    },
+    {
+      "fieldname": "app_password",
+      "label": "App Password / Password",
+      "fieldtype": "Password",
+      "reqd": 1
+    },
+    {
+      "fieldname": "column1",
+      "label": "",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "verify_tls",
+      "label": "Verify TLS",
+      "fieldtype": "Check",
+      "default": 1
+    },
+    {
+      "fieldname": "request_timeout_s",
+      "label": "Request Timeout (s)",
+      "fieldtype": "Int",
+      "default": 30
+    },
+    {
+      "fieldname": "section_endpoints",
+      "label": "Endpoint Overrides (optional)",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "webdav_root_url",
+      "label": "WebDAV Root Path",
+      "fieldtype": "Data",
+      "description": "e.g. /remote.php/dav/files/<username>/"
+    },
+    {
+      "fieldname": "default_calendar_url",
+      "label": "CalDAV Calendar Home",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "default_addressbook_url",
+      "label": "CardDAV Addressbook Home",
+      "fieldtype": "Data"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1,
+      "email": 1
+    }
+  ]
+}

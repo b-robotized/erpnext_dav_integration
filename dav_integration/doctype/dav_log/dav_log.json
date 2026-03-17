@@ -1,0 +1,60 @@
+{
+  "doctype": "DocType",
+  "name": "DAV Log",
+  "module": "DAV Integration",
+  "custom": 0,
+  "is_submittable": 0,
+  "is_tree": 0,
+  "is_single": 0,
+  "autoname": "hash",
+  "title_field": "",
+  "fields": [
+    {
+      "fieldname": "timestamp",
+      "label": "Timestamp",
+      "fieldtype": "Datetime",
+      "reqd": 1
+    },
+    {
+      "fieldname": "account",
+      "label": "Account",
+      "fieldtype": "Link",
+      "options": "DAV Account"
+    },
+    {
+      "fieldname": "resource_type",
+      "label": "Resource Type",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "action",
+      "label": "Action",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "status",
+      "label": "Status",
+      "fieldtype": "Select",
+      "options": "ok\nerror",
+      "default": "ok"
+    },
+    {
+      "fieldname": "message",
+      "label": "Message",
+      "fieldtype": "Small Text"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1,
+      "email": 1
+    }
+  ]
+}

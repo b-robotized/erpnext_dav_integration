@@ -1,0 +1,56 @@
+{
+  "doctype": "DocType",
+  "name": "DAV Settings",
+  "module": "DAV Integration",
+  "custom": 0,
+  "is_submittable": 0,
+  "is_tree": 0,
+  "is_single": 1,
+  "autoname": "DAV Settings",
+  "title_field": "",
+  "fields": [
+    {
+      "fieldname": "sync_enabled",
+      "label": "Sync Enabled",
+      "fieldtype": "Check",
+      "default": 1
+    },
+    {
+      "fieldname": "sync_frequency_minutes",
+      "label": "Sync Frequency (minutes)",
+      "fieldtype": "Int",
+      "default": 10
+    },
+    {
+      "fieldname": "max_items_per_run",
+      "label": "Max Items per Run",
+      "fieldtype": "Int",
+      "default": 200
+    },
+    {
+      "fieldname": "verify_tls",
+      "label": "Verify TLS Certificates",
+      "fieldtype": "Check",
+      "default": 1
+    },
+    {
+      "fieldname": "request_timeout_s",
+      "label": "Request Timeout (seconds)",
+      "fieldtype": "Int",
+      "default": 30
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1,
+      "email": 1
+    }
+  ]
+}
