@@ -1,0 +1,156 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "DAC-.#####",
+ "creation": "2026-03-17 15:02:46.041024",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "user",
+  "section_auth",
+  "base_url",
+  "username",
+  "auth_type",
+  "app_password",
+  "column1",
+  "verify_tls",
+  "request_timeout_s",
+  "section_endpoints",
+  "webdav_root_url",
+  "default_calendar_url",
+  "default_addressbook_url",
+  "section_break_jjex",
+  "dav_address_books"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "section_auth",
+   "fieldtype": "Section Break",
+   "label": "Connection"
+  },
+  {
+   "description": "e.g. https://cloud.example.com",
+   "fieldname": "base_url",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Base URL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Username",
+   "reqd": 1
+  },
+  {
+   "default": "App Password",
+   "fieldname": "auth_type",
+   "fieldtype": "Select",
+   "label": "Auth Type",
+   "options": "App Password\nBasic"
+  },
+  {
+   "fieldname": "app_password",
+   "fieldtype": "Password",
+   "in_list_view": 1,
+   "label": "App Password / Password",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "verify_tls",
+   "fieldtype": "Check",
+   "label": "Verify TLS"
+  },
+  {
+   "default": "30",
+   "fieldname": "request_timeout_s",
+   "fieldtype": "Int",
+   "label": "Request Timeout (s)"
+  },
+  {
+   "fieldname": "section_endpoints",
+   "fieldtype": "Section Break",
+   "label": "Endpoint Overrides (optional)"
+  },
+  {
+   "default": "/remote.php/dav/files",
+   "description": "e.g. /remote.php/dav/files",
+   "fieldname": "webdav_root_url",
+   "fieldtype": "Data",
+   "label": "WebDAV Root Path"
+  },
+  {
+   "default": "/remote.php/dav/principals",
+   "description": "e.g./remote.php/dav/principals",
+   "fieldname": "default_calendar_url",
+   "fieldtype": "Data",
+   "label": "CalDAV Calendar Home"
+  },
+  {
+   "default": "/remote.php/dav/addressbooks",
+   "description": "e.g./remote.php/dav/addressbooks",
+   "fieldname": "default_addressbook_url",
+   "fieldtype": "Data",
+   "label": "CardDAV Addressbook Home"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_jjex",
+   "fieldtype": "Section Break",
+   "label": "DAV Address Books",
+   "sticky": 1
+  },
+  {
+   "fieldname": "dav_address_books",
+   "fieldtype": "Table",
+   "options": "DAV Address Book"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-01 16:05:28.552706",
+ "modified_by": "arun.govind@cloudconverge.io",
+ "module": "Erpnext Dav Integration",
+ "name": "DAV Account",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

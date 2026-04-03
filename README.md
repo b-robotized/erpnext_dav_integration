@@ -1,44 +1,41 @@
-# dav_integration (ERPNext / Frappe v16)
+### Erpnext Dav Integration
 
-Starter skeleton for a generic DAV integration app:
-- WebDAV (files) — **implemented** (PROPFIND list + GET/PUT)
-- CalDAV (calendar) — stubs
-- CardDAV (contacts) — stubs
+this is description
 
-## Quick start (bench)
+### Installation
 
-1) Unzip into your bench `apps/` folder:
-   `apps/dav_integration/`
+You can install this app using the [bench](https://github.com/frappe/bench) CLI:
 
-2) Install python deps:
-   `./env/bin/pip install -r apps/dav_integration/requirements.txt`
+```bash
+cd $PATH_TO_YOUR_BENCH
+bench get-app $URL_OF_THIS_REPO --branch develop
+bench install-app erpnext_dav_integration
+```
 
-3) Install the app:
-   `bench --site <yoursite> install-app dav_integration`
+### Contributing
 
-4) Run migrations:
-   `bench --site <yoursite> migrate`
+This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
 
-## Configure
+```bash
+cd apps/erpnext_dav_integration
+pre-commit install
+```
 
-- **DAV Settings** (singleton)
-- **DAV Account** (create one record)
+Pre-commit is configured to use the following tools for checking and formatting your code:
 
-For Nextcloud you can usually set:
-- Base URL: `https://cloud.example.com`
-- Username: `<your-user>`
-- App Password: `<nextcloud app password>`
-- (optional) WebDAV Root Path: `/remote.php/dav/files/<your-user>/`
+- ruff
+- eslint
+- prettier
+- pyupgrade
 
-## Run a one-off sync (test)
+### CI
 
-`bench --site <yoursite> execute dav_integration.jobs.sync.sync_account --kwargs "{'account':'<DAV Account name>'}"`
+This app can use GitHub Actions for CI. The following workflows are configured:
 
-This will do a WebDAV PROPFIND listing on the configured root and write a **DAV Log** entry.
+- CI: Installs this app and runs unit tests on every push to `develop` branch.
+- Linters: Runs [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request.
 
-## What’s inside
 
-- `dav/session.py` : requests wrapper
-- `dav/webdav.py`  : PROPFIND + GET + PUT
-- `jobs/sync.py`   : scheduler entry + account sync job
-- DocTypes: DAV Settings / DAV Account / DAV Sync State / DAV Log
+### License
+
+agpl-3.0
