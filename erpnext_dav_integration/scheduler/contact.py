@@ -2,6 +2,7 @@ import base64
 import html
 import re
 import uuid
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from io import BytesIO
 
@@ -11,7 +12,7 @@ import requests
 import vobject
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth
-import xml.etree.ElementTree as ET
+
 try:
 	from PIL import Image
 
@@ -417,7 +418,6 @@ def synchronize_carddav_contacts():
 			uid = vcard.uid.value if hasattr(vcard, "uid") else None
 			if not uid:
 				continue  # If no UID, skip to the next vCard
-
 
 			create_and_update_contacts_from_vcf(
 				vcard_string,

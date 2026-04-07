@@ -26,7 +26,6 @@ class DAVAccount(Document):
 			frappe.msgprint(f"Failed to fetch address books: {e}")
 
 	def fetch_and_store_address_books(self):
-
 		self.dav_address_books = []
 
 		base_url = self.base_url.rstrip("/")
@@ -223,4 +222,3 @@ def delete_address_book(docname, address_book_url):
 
 	if response.status_code not in [200, 204]:
 		frappe.throw(f"Failed to delete address book: {response.status_code} - {response.text}")
-

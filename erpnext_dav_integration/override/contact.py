@@ -39,8 +39,6 @@ def sync_contact_to_carddav(doc, method):
 
 
 def update_contact(dav, doc, vcard, password):
-	base = _get_base_url(dav, doc)
-
 	contact_url = doc.custom_vcard_url
 
 	res = requests.put(
@@ -83,9 +81,6 @@ def _get_base_url(dav, doc):
 	if doc.custom_dav_address_book_url.startswith("http"):
 		return doc.custom_dav_address_book_url.rstrip("/")
 	return dav.base_url.rstrip("/") + doc.custom_dav_address_book_url.rstrip("/")
-
-
-import uuid
 
 
 def esc(val):
