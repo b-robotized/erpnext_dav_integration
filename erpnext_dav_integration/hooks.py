@@ -1,249 +1,30 @@
 app_name = "erpnext_dav_integration"
 app_title = "Erpnext Dav Integration"
-app_publisher = "b»robotized group"
-app_description = "this is description"
+app_publisher = "Cloud Converge"
+app_description = "This is for Dav Integration"
 app_email = "arun.govind@cloudconverge.io"
 app_license = "agpl-3.0"
 
-# Apps
-# ------------------
+doctype_js = {"Contact": "public/js/contact.js"}
 
-# required_apps = []
+doc_events = {
+    "Contact": {
+        "before_save": "erpnext_dav_integration.override.contact.sync_contact_to_carddav",
+        "on_trash": "erpnext_dav_integration.override.contact.delete_contact_from_carddav"
+    }
+}
+scheduler_events = {
+    "cron": {
+        "0 0 * * *": [
+            "erpnext_dav_integration.scheduler.contact.update_all_dav_accounts_address_book_list"
+        ],
+        "*/15 * * * *": [
+            "erpnext_dav_integration.scheduler.contact.schedule_synchronization",
+            "erpnext_dav_integration.scheduler.contact.deletion_of_trashed_contacts",
+            ]
+    }
+}
 
-# Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "erpnext_dav_integration",
-# 		"logo": "/assets/erpnext_dav_integration/logo.png",
-# 		"title": "Erpnext Dav Integration",
-# 		"route": "/erpnext_dav_integration",
-# 		"has_permission": "erpnext_dav_integration.api.permission.has_app_permission"
-# 	}
-# ]
-
-# Includes in <head>
-# ------------------
-
-# include js, css files in header of desk.html
-# app_include_css = "/assets/erpnext_dav_integration/css/erpnext_dav_integration.css"
-# app_include_js = "/assets/erpnext_dav_integration/js/erpnext_dav_integration.js"
-
-# include js, css files in header of web template
-# web_include_css = "/assets/erpnext_dav_integration/css/erpnext_dav_integration.css"
-# web_include_js = "/assets/erpnext_dav_integration/js/erpnext_dav_integration.js"
-
-# include custom scss in every website theme (without file extension ".scss")
-# website_theme_scss = "erpnext_dav_integration/public/scss/website"
-
-# include js, css files in header of web form
-# webform_include_js = {"doctype": "public/js/doctype.js"}
-# webform_include_css = {"doctype": "public/css/doctype.css"}
-
-# include js in page
-# page_js = {"page" : "public/js/file.js"}
-
-# include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
-# doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
-# doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
-
-# Svg Icons
-# ------------------
-# include app icons in desk
-# app_include_icons = "erpnext_dav_integration/public/icons.svg"
-
-# Home Pages
-# ----------
-
-# application home page (will override Website Settings)
-# home_page = "login"
-
-# website user home page (by Role)
-# role_home_page = {
-# 	"Role": "home_page"
-# }
-
-# Generators
-# ----------
-
-# automatically create page for each record of this doctype
-# website_generators = ["Web Page"]
-
-# Jinja
-# ----------
-
-# add methods and filters to jinja environment
-# jinja = {
-# 	"methods": "erpnext_dav_integration.utils.jinja_methods",
-# 	"filters": "erpnext_dav_integration.utils.jinja_filters"
-# }
-
-# Installation
-# ------------
-
-# before_install = "erpnext_dav_integration.install.before_install"
-# after_install = "erpnext_dav_integration.install.after_install"
-
-# Uninstallation
-# ------------
-
-# before_uninstall = "erpnext_dav_integration.uninstall.before_uninstall"
-# after_uninstall = "erpnext_dav_integration.uninstall.after_uninstall"
-
-# Integration Setup
-# ------------------
-# To set up dependencies/integrations with other apps
-# Name of the app being installed is passed as an argument
-
-# before_app_install = "erpnext_dav_integration.utils.before_app_install"
-# after_app_install = "erpnext_dav_integration.utils.after_app_install"
-
-# Integration Cleanup
-# -------------------
-# To clean up dependencies/integrations with other apps
-# Name of the app being uninstalled is passed as an argument
-
-# before_app_uninstall = "erpnext_dav_integration.utils.before_app_uninstall"
-# after_app_uninstall = "erpnext_dav_integration.utils.after_app_uninstall"
-
-# Desk Notifications
-# ------------------
-# See frappe.core.notifications.get_notification_config
-
-# notification_config = "erpnext_dav_integration.notifications.get_notification_config"
-
-# Permissions
-# -----------
-# Permissions evaluated in scripted ways
-
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
-
-# DocType Class
-# ---------------
-# Override standard doctype classes
-
-# override_doctype_class = {
-# 	"ToDo": "custom_app.overrides.CustomToDo"
-# }
-
-# Document Events
-# ---------------
-# Hook on document methods and events
-
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
-
-# Scheduled Tasks
-# ---------------
-
-# scheduler_events = {
-# 	"all": [
-# 		"erpnext_dav_integration.tasks.all"
-# 	],
-# 	"daily": [
-# 		"erpnext_dav_integration.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"erpnext_dav_integration.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"erpnext_dav_integration.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"erpnext_dav_integration.tasks.monthly"
-# 	],
-# }
-
-# Testing
-# -------
-
-# before_tests = "erpnext_dav_integration.install.before_tests"
-
-# Overriding Methods
-# ------------------------------
-#
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "erpnext_dav_integration.event.get_events"
-# }
-#
-# each overriding function accepts a `data` argument;
-# generated from the base implementation of the doctype dashboard,
-# along with any modifications made in other Frappe apps
-# override_doctype_dashboards = {
-# 	"Task": "erpnext_dav_integration.task.get_dashboard_data"
-# }
-
-# exempt linked doctypes from being automatically cancelled
-#
-# auto_cancel_exempted_doctypes = ["Auto Repeat"]
-
-# Ignore links to specified DocTypes when deleting documents
-# -----------------------------------------------------------
-
-# ignore_links_on_delete = ["Communication", "ToDo"]
-
-# Request Events
-# ----------------
-# before_request = ["erpnext_dav_integration.utils.before_request"]
-# after_request = ["erpnext_dav_integration.utils.after_request"]
-
-# Job Events
-# ----------
-# before_job = ["erpnext_dav_integration.utils.before_job"]
-# after_job = ["erpnext_dav_integration.utils.after_job"]
-
-# User Data Protection
-# --------------------
-
-# user_data_fields = [
-# 	{
-# 		"doctype": "{doctype_1}",
-# 		"filter_by": "{filter_by}",
-# 		"redact_fields": ["{field_1}", "{field_2}"],
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_2}",
-# 		"filter_by": "{filter_by}",
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_3}",
-# 		"strict": False,
-# 	},
-# 	{
-# 		"doctype": "{doctype_4}"
-# 	}
-# ]
-
-# Authentication and authorization
-# --------------------------------
-
-# auth_hooks = [
-# 	"erpnext_dav_integration.auth.validate"
-# ]
-
-# Automatically update python controller files with type annotations for this app.
-# export_python_type_annotations = True
-
-# default_log_clearing_doctypes = {
-# 	"Logging DocType Name": 30  # days to retain logs
-# }
-
-# Translation
-# ------------
-# List of apps whose translatable strings should be excluded from this app's translations.
-# ignore_translatable_strings_from = []
-
+doctype_list_js = {
+  "Contact": "public/js/contact_list.js"
+}
