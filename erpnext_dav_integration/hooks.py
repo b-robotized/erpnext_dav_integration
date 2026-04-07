@@ -1,6 +1,6 @@
 app_name = "erpnext_dav_integration"
 app_title = "Erpnext Dav Integration"
-app_publisher = "Cloud Converge"
+app_publisher = "b»robotized group"
 app_description = "this is description"
 app_email = "arun.govind@cloudconverge.io"
 app_license = "agpl-3.0"

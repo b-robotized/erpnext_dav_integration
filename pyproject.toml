@@ -1,7 +1,7 @@
 [project]
 name = "erpnext_dav_integration"
 authors = [
-    { name = "Cloud Converge", email = "arun.govind@cloudconverge.io"}
+    { name = "b»robotized group", email = "arun.govind@cloudconverge.io"}
 ]
 description = "this is description"
 requires-python = ">=3.10"
