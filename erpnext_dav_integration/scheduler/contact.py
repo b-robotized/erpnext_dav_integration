@@ -101,11 +101,6 @@ def _compress_image(image_data, target_size=40000, max_quality=95, min_quality=1
 		return image_data
 
 
-import re
-
-import frappe
-import vobject
-
 gender_map = {"M": "Male", "F": "Female", "O": "Other", "N": "None", "U": "Unknown"}
 
 
