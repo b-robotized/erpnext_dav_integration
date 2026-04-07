@@ -61,7 +61,13 @@ repos:
                 erpnext_dav_integration/templates/includes/.*|
                 erpnext_dav_integration/public/js/lib/.*
             )$
-
+  - repo: https://github.com/semgrep/pre-commit
+    rev: 'v1.157.0'
+    hooks:
+      - id: semgrep-ci
+        args:
+          - --config=p/ci
+        files: ^erpnext_dav_integration/
 ci:
     autoupdate_schedule: weekly
     skip: []
