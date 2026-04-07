@@ -11,7 +11,7 @@ import requests
 import vobject
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth
-
+import xml.etree.ElementTree as ET
 try:
 	from PIL import Image
 
@@ -97,7 +97,7 @@ def _compress_image(image_data, target_size=40000, max_quality=95, min_quality=1
 
 		return image_data
 	except Exception as e:
-		frappe.log_error(f"Image compression failed: {str(e)}", "DAV Sync Compression Error")
+		frappe.log_error(f"Image compression failed: {e!s}", "DAV Sync Compression Error")
 		return image_data
 
 
@@ -374,7 +374,7 @@ def create_and_update_contacts_from_vcf(
 									contact_doc.image = f"data:{mime_type};base64,{photo_data}"
 					except Exception as photo_error:
 						frappe.log_error(
-							f"Error processing photo for {full_name}: {str(photo_error)}",
+							f"Error processing photo for {full_name}: {photo_error!s}",
 							"DAV Sync Photo Error",
 						)
 				# ------------------------
@@ -402,9 +402,7 @@ def synchronize_carddav_contacts():
 	dav_accounts = get_dav_accounts()
 	for dav in dav_accounts:
 		base = (dav.base_url or "").strip().rstrip("/")
-		path = (dav.default_addressbook_url or "").strip().strip("/")
 
-		url = path if path.startswith("http") else f"{base}/{path}" if path else base
 		username = dav.username
 		password = get_decrypted_password("DAV Account", dav.name, "app_password")
 
@@ -413,7 +411,6 @@ def synchronize_carddav_contacts():
 
 		for entry in all_vcard_entries:
 			vcard_string = entry["vcard"]
-			address_book_url = entry["address_book_url"]
 			# Preprocess vCard string
 			vcard_string = preprocess_vcard(vcard_string)
 			vcard = vobject.readOne(vcard_string)
@@ -421,12 +418,6 @@ def synchronize_carddav_contacts():
 			if not uid:
 				continue  # If no UID, skip to the next vCard
 
-			# Check if contact exists in Frappe
-			contact_exists = (
-				frappe.db.exists("Contact", {"email_id": vcard.email.value})
-				if hasattr(vcard, "email")
-				else None
-			)
 
 			create_and_update_contacts_from_vcf(
 				vcard_string,
@@ -491,8 +482,7 @@ def fetch_vcards_from_carddav(base_url, username, password):
 
 		if res.status_code != 207:
 			continue
-		# res_text = html.unescape(res.text)
-		# decoded = html.unescape(res_text)
+
 		vcards = parse_vcards_with_href(res.text, base_url)
 
 		for vcard in vcards:
@@ -508,8 +498,8 @@ def fetch_vcards_from_carddav(base_url, username, password):
 	return all_vcard_entries
 
 
-import html
-import xml.etree.ElementTree as ET
+# import html
+# import xml.etree.ElementTree as ET
 
 
 def parse_vcards_with_href(xml_text, base_url):
@@ -541,11 +531,6 @@ def parse_vcards_with_href(xml_text, base_url):
 			results.append({"href": base_url.rstrip("/") + href, "vcard": vcard})
 
 	return results
-
-	return results
-
-
-import xml.etree.ElementTree as ET
 
 
 def parse_addressbooks(xml_text):
