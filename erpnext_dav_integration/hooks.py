@@ -16,7 +16,7 @@ doc_events = {
 scheduler_events = {
 	"cron": {
 		"0 0 * * *": ["erpnext_dav_integration.scheduler.contact.update_all_dav_accounts_address_book_list"],
-		"*/15 * * * *": [
+		"0 15 * * *": [
 			"erpnext_dav_integration.scheduler.contact.schedule_synchronization",
 			"erpnext_dav_integration.scheduler.contact.deletion_of_trashed_contacts",
 		],
