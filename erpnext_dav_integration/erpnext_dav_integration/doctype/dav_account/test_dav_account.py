@@ -1,4 +1,4 @@
-# Copyright (c) 2026, CloudConverge and Contributors
+# Copyright (c) 2026, b»robotized group and Contributors
 # See license.txt
 
 # import frappe

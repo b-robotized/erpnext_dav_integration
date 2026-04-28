@@ -1,4 +1,4 @@
-# Copyright (c) 2026, CloudConverge and contributors
+# Copyright (c) 2026, b»robotized group and contributors
 # For license information, please see license.txt
 
 from xml.etree import ElementTree as ET
