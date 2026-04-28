@@ -1,4 +1,18 @@
 frappe.ui.form.on("Contact", {
+	refresh: function(frm) {
+		// fetch default dav accont and address book on load
+		if (frm.is_new()) {
+			frappe.call({
+				method: "erpnext_dav_integration.erpnext_dav_integration.doctype.dav_account.dav_account.get_default_dav_account",
+				callback: function (r) {
+					if (r.message) {						
+						frm.set_value("custom_dav_account", r.message || null);
+						frm.trigger("custom_dav_account");
+					}
+				},
+			});
+		}
+	},
 	custom_dav_account: function (frm) {
 		if (!frm.doc.custom_dav_account) return;
 
@@ -15,6 +29,37 @@ frappe.ui.form.on("Contact", {
 			},
 		});
 	},
+	custom_enable_dav_sync: function(frm) {
+		if (frm.doc.custom_enable_dav_sync) {
+			frappe.call({
+				method: "erpnext_dav_integration.erpnext_dav_integration.doctype.dav_account.dav_account.get_default_dav_account",
+				callback: function (r) {
+					if (r.message) {						
+						frm.set_value("custom_dav_account", r.message || null);
+						frm.trigger("custom_dav_account");
+					}
+				},
+			});
+		} else {
+			frm.set_value("custom_dav_account", null);
+			frm.set_value("custom_dav_address_book", null);
+			frm.set_value("custom_dav_address_book_url", null);
+			frm.set_value("custom_vcard_url", null);
+			frm.set_value("custom_dav_uid", null);
+			frm.set_value("custom_sync_status", null);
+			frm.set_value("custom_last_sync", null);
+			frm.set_value("custom_vcard", null);
+			frm.refresh_field("custom_dav_account");
+			frm.refresh_field("custom_dav_address_book");
+			frm.refresh_field("custom_dav_address_book_url");
+			frm.refresh_field("custom_vcard_url");
+			frm.refresh_field("custom_dav_uid");
+			frm.refresh_field("custom_sync_status");
+			frm.refresh_field("custom_last_sync");
+			frm.refresh_field("custom_vcard");
+
+		}
+	},
 	custom_dav_address_book: function (frm) {
 		if (!frm.doc.custom_dav_address_book) return;
 
@@ -26,7 +71,6 @@ frappe.ui.form.on("Contact", {
 			},
 			callback: function (r) {
 				if (r.message) {
-					console.log("Fetched address book URL:", r.message);
 					frm.set_value("custom_dav_address_book_url", r.message);
 					frm.refresh_field("custom_dav_address_book_url");
 				}

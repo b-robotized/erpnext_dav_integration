@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-08 14:40:57.982702",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "email",
+  "contact",
+  "send_invitation",
+  "column_break_lcfq",
+  "invitation_status",
+  "response_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Email",
+   "mask": 1,
+   "options": "Email"
+  },
+  {
+   "fieldname": "contact",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "ERPNext Contact",
+   "options": "Contact"
+  },
+  {
+   "default": "0",
+   "description": "Check to include in CalDAV invitation",
+   "fieldname": "send_invitation",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Send Invitation"
+  },
+  {
+   "fieldname": "column_break_lcfq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "invitation_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nAccepted\nDeclined\nNo Response",
+   "reqd": 1
+  },
+  {
+   "fieldname": "response_date",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Response Date"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-09 15:53:56.483425",
+ "modified_by": "Administrator",
+ "module": "Erpnext Dav Integration",
+ "name": "Event CalDAV Participant",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

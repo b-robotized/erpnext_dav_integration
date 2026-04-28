@@ -217,11 +217,7 @@ def create_and_update_contacts_from_vcf(
 				contact_doc.custom_addresses = []
 				for adr in addresses:
 					value = adr.value
-					frappe.log_error(
-						f"Processing address for {full_name}: value={value} street={value.street}, city={value.city}, region={value.region}, code={value.code}, country={value.country},",
-						"DAV Sync Address Debug",
-					)
-					frappe.log_error(f"dictionary: {value.__dict__}", "DAV Sync Address Debug")
+					
 					full_address = " ".join(
 						filter(
 							None,

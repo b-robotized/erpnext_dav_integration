@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class ContactSocialProfile(Document):
+class EventCalDAVParticipant(Document):
 	pass

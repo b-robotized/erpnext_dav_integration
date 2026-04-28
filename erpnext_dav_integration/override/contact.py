@@ -9,12 +9,22 @@ from requests.auth import HTTPBasicAuth
 
 def sync_contact_to_carddav(doc, method):
 	try:
+		if not doc.custom_dav_account:
+			dav = frappe.get_doc("DAV Account", {"default": 1, "enabled": 1})
+		else:
+			dav = frappe.get_doc("DAV Account", doc.custom_dav_account)
+		if method == "before_insert" and not doc.custom_enable_dav_sync:
+			return
+		elif method == "before_insert" and doc.custom_enable_dav_sync and dav.auto_sync_contacts:
+			doc.dav_account = dav.name
 		if frappe.flags.in_scheduled_job:
 			return
+
 		if not doc.custom_enable_dav_sync:
 			return
-
-		dav = frappe.get_doc("DAV Account", doc.custom_dav_account)
+		
+			
+		
 
 		if not dav.base_url or not dav.username:
 			return

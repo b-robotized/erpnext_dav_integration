@@ -11,7 +11,8 @@ dynamic = ["version"]
 dependencies = [
     "requests",
     "langcodes",
-    "language-data"
+    "language-data",
+    "icalendar"
 ]
 
 [build-system]
