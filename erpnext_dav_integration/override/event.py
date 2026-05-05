@@ -13,7 +13,7 @@ class CustomEvent(Event):
         - Sync to CalDAV if needed
         """
         if self.create_in_caldav and not self.caldav_event_id:
-            self._create_in_caldav()
+            self.after_insert()
             return
         super().validate()
         # Only sync if already connected to CalDAV
