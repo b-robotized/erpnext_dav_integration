@@ -12,7 +12,7 @@ class CustomEvent(Event):
         - Detect if caldav event was modified
         - Sync to CalDAV if needed
         """
-        if self.create_in_caldav and not self.caldav_event_id:
+        if self.create_in_caldav and not self.is_new():
             self.after_insert()
             return
         super().validate()
