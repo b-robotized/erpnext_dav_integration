@@ -20,11 +20,8 @@ def sync_contact_to_carddav(doc, method):
 		if frappe.flags.in_scheduled_job:
 			return
 
-		if not doc.custom_enable_dav_sync:
+		if not doc.custom_enable_dav_sync or not doc.custom_dav_address_book_url:
 			return
-		
-			
-		
 
 		if not dav.base_url or not dav.username:
 			return
@@ -32,9 +29,6 @@ def sync_contact_to_carddav(doc, method):
 		password = get_decrypted_password("DAV Account", dav.name, "app_password")
 		if not password:
 			return
-
-		if not doc.custom_dav_address_book_url:
-			frappe.throw("Please select DAV Address Book")
 
 		vcard = build_vcard(doc)
 

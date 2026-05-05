@@ -43,6 +43,56 @@ frappe.ui.form.on("DAV Account", {
 			});
 		});
 	},
+	async validate(frm) {
+	    const createRoleIfMissing = async (role_name) => {
+	        const exists = await frappe
+	            .xcall("frappe.client.get", { doctype: "Role", name: role_name })
+	            .then(() => true)
+	            .catch(() => false);
+		
+	        if (exists) return;
+		
+	        try {
+	            await frappe.xcall("frappe.client.insert", {
+	                doc: {
+	                    doctype: "Role",
+	                    role_name: role_name,
+	                },
+	            });
+	            frappe.msgprint(`Role "${role_name}" created successfully.`);
+	        } catch (err) {
+	            console.error(`Error creating role "${role_name}":`, err);
+	            frappe.msgprint(`Failed to create role "${role_name}".`);
+	        }
+	    };
+	
+	    let tasks = [];
+	
+	    // 🔹 Address Books Roles
+	    if (frm.doc.dav_address_books?.length) {
+	        frm.doc.dav_address_books.forEach((row) => {
+	            if (!row.address_book_name) return;
+			
+	            const role_name = `DAV Address Book: ${frm.doc.name} - ${row.address_book_name}`;
+	            tasks.push(createRoleIfMissing(role_name));
+	        });
+	    }
+	
+	    // 🔥 Wait for all role creations before saving
+	    await Promise.all(tasks);
+	},
+	discover_calendars_btn(frm) {
+		frappe.call({
+			method: "discover_calendars",
+			doc: frm.doc,
+			callback: function (r) {
+				if (!r.exc) {
+					frappe.msgprint("Calendar Discovery Completed");
+					frm.reload_doc();
+				}
+			},
+		});
+	}
 });
 
 frappe.ui.form.on("DAV Address Book", {

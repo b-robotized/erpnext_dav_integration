@@ -12,7 +12,8 @@ dependencies = [
     "requests",
     "langcodes",
     "language-data",
-    "icalendar"
+    "icalendar",
+    "pybreaker"
 ]
 
 [build-system]

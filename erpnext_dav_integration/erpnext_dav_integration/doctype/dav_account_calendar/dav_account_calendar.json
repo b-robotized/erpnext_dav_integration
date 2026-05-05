@@ -6,12 +6,15 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "is_default",
   "calendar_url",
   "display_name",
   "column_break_umwr",
   "enable_sync",
   "calendar_color",
-  "timezone"
+  "timezone",
+  "last_ctag",
+  "last_sync"
  ],
  "fields": [
   {
@@ -48,13 +51,30 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Timezone"
+  },
+  {
+   "fieldname": "last_ctag",
+   "fieldtype": "Data",
+   "label": "Last Ctag"
+  },
+  {
+   "fieldname": "last_sync",
+   "fieldtype": "Datetime",
+   "label": "Last Sync"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Is Default"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-04-08 17:53:03.596651",
+ "modified": "2026-05-05 09:50:06.682518",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV Account Calendar",

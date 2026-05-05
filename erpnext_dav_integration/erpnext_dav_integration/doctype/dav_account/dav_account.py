@@ -46,10 +46,7 @@ class DAVAccount(Document):
 					'timezone': cal.get('timezone')
 				})
             self.save(ignore_permissions=True)
-            frappe.msgprint(
-	            _("Discovered {0} calendars").format(len(calendars)),
-	            alert=True
-             )
+            
         except Exception as e:
             frappe.msgprint(
 	            _("Error discovering calendars: {0}").format(str(e)),
@@ -116,7 +113,6 @@ class DAVAccount(Document):
                 # ✅ Update name only, keep user flags
                 existing_books[url].address_book_name = name
             else:
-                frappe.msgprint(f"Found new address book: {name} url: {url}")
                 # ➕ New address book
                 self.append("dav_address_books", {
                     "address_book_name": name,

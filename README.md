@@ -1,5 +1,5 @@
 
-# ERPNext DAV Integration Manual
+# ERPNext DAV Integration Manual (Contacts & Calendar)
 
 ## Table of Contents
 - [Overview](#overview)
@@ -10,16 +10,19 @@
 - [User Guide](#user-guide)
 - [Limitations](#limitations)
 
+**Note:** This integration supports both CardDAV (contacts) and CalDAV (calendar events) synchronization.
+
 ## 1. Overview
 
-The ERPNext DAV Integration app connects your ERPNext instance with WebDAV servers (such as Nextcloud, ownCloud, or other compatible providers). It enables seamless synchronization of contacts using industry-standard protocols.
+The ERPNext DAV Integration app connects your ERPNext instance with WebDAV servers (such as Nextcloud, ownCloud, or other compatible providers). It enables seamless synchronization of contacts and calendar events using industry-standard protocols.
 
 ### What is DAV?
 
 DAV (Distributed Authoring and Versioning) is an extension of HTTP that allows collaborative content management.
 
-This integration primarily uses:
+This integration supports:
 - **CardDAV** → Contact (vCard) synchronization
+- **CalDAV** → Calendar (iCalendar) event synchronization
 
 ### Publisher
 - **Organization:** b-robotized group
@@ -32,13 +35,16 @@ This integration primarily uses:
 
 ### Core Capabilities
 - Contact synchronization between ERPNext and CardDAV
+- Calendar event synchronization between ERPNext and CalDAV
 - Multi-address book support
+- Multi-calendar support
 - Automatic address book discovery
-- Real-time sync on contact updates
-- Contact deletion sync
+- Automatic calendar discovery
+- Real-time sync on contact and event updates
+- Contact and event deletion sync
 - Scheduled synchronization
-- Address book management
-- Rich contact field support
+- Address book and calendar management
+- Rich contact and event field support
 
 ### Supported Contact Attributes
 - Full name
@@ -48,6 +54,15 @@ This integration primarily uses:
 - Website
 - Social media profiles
 - Address details
+
+### Supported Calendar Attributes
+- Event title
+- Event description
+- Start and end times
+- Recurrence rules
+- Attendees
+- Location
+- Event status
 
 ---
 
@@ -65,6 +80,7 @@ This integration primarily uses:
   - Username
   - Password / App Password
 - CardDAV endpoint access
+- CalDAV endpoint access
 
 ### Knowledge Requirements
 - Basic ERPNext usage
@@ -124,6 +140,16 @@ bench --site your-site.com clear-cache
 1. Click **Update Address Book List**
 2. Select default address book
 
+### Creating a DAV Calendar
+
+#### Step 1: Access DAV Account
+1. Open the DAV Account created above
+2. Navigate to Calendar section
+
+#### Step 2: Discover Calendars
+1. Click **Update Calendar List**
+2. Select default calendar
+
 ### Contact Mapping
 
 #### Identity Fields
@@ -173,30 +199,72 @@ bench --site your-site.com clear-cache
 | Notes | NOTE |
 | Modified | REV |
 
+### Event Mapping (CalDAV)
+
+#### Event Details
+| ERPNext | iCalendar |
+|---------|----------|
+| Event Title | SUMMARY |
+| Description | DESCRIPTION |
+| Start Date/Time | DTSTART |
+| End Date/Time | DTEND |
+| Location | LOCATION |
+| Status | STATUS |
+| UID | UID |
+
+#### Recurrence
+| ERPNext | iCalendar |
+|---------|----------|
+| Repeat Frequency | RRULE |
+| Repeat Until | UNTIL |
+| Repeat Every N | INTERVAL |
+
+#### Attendees
+| ERPNext | iCalendar |
+|---------|----------|
+| Attendees | ATTENDEE |
+
 ---
 
 ## 6. User Guide
 
-### Manual Sync
+### Contact Synchronization
+
+#### Manual Sync
 1. Open Contact
 2. Edit details
 3. Save
 4. → Automatically synced
 
-### Scheduled Sync
-- **00:00** → Full sync
-- **00:15** → Incremental sync + deletion
-
-### Social Profiles
+#### Social Profiles
 1. Add in Contact Social Profile table
 2. Automatically included in sync
 
-### Multiple Address Books
+#### Multiple Address Books
 1. Select DAV Address Book in Contact
 2. Save to sync into specific book
 
-### Deleting Contacts
+#### Deleting Contacts
 - Deleting in ERPNext removes from DAV (if permitted)
+
+### Calendar Event Synchronization
+
+#### Manual Sync
+1. Open Event
+2. Edit details (title, start/end time, attendees, etc.)
+3. Save
+4. → Automatically synced to CalDAV
+
+#### Select Calendar
+1. Assign event to DAV Calendar in Event form
+2. Save to sync into specific calendar
+
+#### Deleting Events
+- Deleting in ERPNext removes from DAV calendar (if permitted)
+
+### Scheduled Sync
+- **00:00** → Full sync (contacts & events)
+- **00:15** → Incremental sync + deletion (contacts & events)
 
 ---
 
@@ -247,6 +315,28 @@ Preventing duplicates would require modifying:
   - Fail to store
 - ERPNext → DAV image sync: ❌ Not supported
 
+### 7.4 Event Timezone Handling
+
+#### Behavior
+- Events are synced with timezone information
+- Times are converted to UTC for storage
+
+#### Limitations
+- Timezone conversions depend on DAV server support
+- All-day events sync as UTC times
+- Recurring events follow iCalendar RRULE standards
+
+### 7.5 Attendee Sync Limitations
+
+#### Behavior
+- Attendee email addresses are synced
+- Attendee status (accepted/declined) may not sync bi-directionally
+
+#### Limitations
+- Some servers don't support full attendee management
+- Response tracking may be limited
+- RSVP functionality depends on DAV server capabilities
+
 ### 7.3 DAV Permission Constraints
 
 #### Problem
@@ -255,6 +345,8 @@ Operations depend on DAV account permissions.
 #### Affected Operations
 - Updating contacts
 - Deleting contacts
+- Updating events
+- Deleting events
 
 #### Errors
 - 403 Forbidden

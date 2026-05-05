@@ -28,7 +28,6 @@
   "dav_address_books",
   "caldav_configuration_section",
   "default_calendar_url",
-  "event_edit_base_url",
   "column_break_plxz",
   "auto_delete_caldav_events",
   "auto_sync_events",
@@ -144,12 +143,6 @@
    "label": "CalDAV Configuration"
   },
   {
-   "description": "e.g., https://nextcloud.example.com/apps/calendar/edit/{eventId}",
-   "fieldname": "event_edit_base_url",
-   "fieldtype": "Data",
-   "label": "Event Edit Base URL"
-  },
-  {
    "fieldname": "available_calendars",
    "fieldtype": "Table",
    "label": "Available Calendars",
@@ -216,7 +209,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-28 10:59:33.605814",
+ "modified": "2026-05-05 09:54:28.376697",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV Account",
