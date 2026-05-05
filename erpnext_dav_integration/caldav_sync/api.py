@@ -91,7 +91,7 @@ def fetch_events_from_dav_calendar():
 def enqueue_fetch_events_from_dav_calendar():
     """Enqueue the fetch_events_from_dav_calendar function to run in the background"""
     check_rate_limit(f"user:{frappe.session.user}:enqueue_fetch_events_from_dav_calendar", 10, 60)
-    frappe.enqueue('erpnext_dav_integration.caldav_sync.api.fetch_events_from_dav_calendar', queue='long', timeout=6000)
+    frappe.enqueue('erpnext_dav_integration.caldav_sync.api.fetch_events_from_dav_calendar', queue='long', timeout=6000,deduplicate=True)
 
 
 @frappe.whitelist()
