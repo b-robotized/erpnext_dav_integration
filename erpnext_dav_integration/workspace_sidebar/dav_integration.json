@@ -1,0 +1,55 @@
+{
+ "app": "erpnext_dav_integration",
+ "creation": "2026-05-11 12:30:02.857442",
+ "docstatus": 0,
+ "doctype": "Workspace Sidebar",
+ "for_user": "",
+ "header_icon": "plug-2",
+ "idx": 0,
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "settings-2",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "DAV Account",
+   "link_to": "DAV Account",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "list",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "DAV Calendar",
+   "link_to": "DAV Calendar",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "list",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "DAV AddressBook",
+   "link_to": "DAV AddressBook",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-05-11 12:55:04.956375",
+ "modified_by": "Administrator",
+ "module": "Erpnext Dav Integration",
+ "module_onboarding": "",
+ "name": "DAV Integration",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "DAV Integration"
+}

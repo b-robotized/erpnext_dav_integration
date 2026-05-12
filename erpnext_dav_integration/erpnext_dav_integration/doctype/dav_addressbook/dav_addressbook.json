@@ -1,0 +1,78 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "prompt",
+ "creation": "2026-05-05 14:47:55.107845",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "dav_account",
+  "column_break_kvho",
+  "dav_addressbook"
+ ],
+ "fields": [
+  {
+   "fieldname": "dav_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "DAV Account",
+   "no_copy": 1,
+   "options": "DAV Account",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "column_break_kvho",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "dav_addressbook",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "DAV AddressBook",
+   "no_copy": 1,
+   "reqd": 1,
+   "set_only_once": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-07 12:22:12.871390",
+ "modified_by": "Administrator",
+ "module": "Erpnext Dav Integration",
+ "name": "DAV AddressBook",
+ "naming_rule": "Set by user",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

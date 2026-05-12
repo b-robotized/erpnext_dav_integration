@@ -26,8 +26,8 @@ class DAVAccount(Document):
     @frappe.whitelist()
     def discover_calendars(self):
         """Refresh calendar list from CalDAV provider"""
-        from erpnext_dav_integration.caldav_sync.manager import CalDAVManager
-        manager = CalDAVManager(self.name)
+        from erpnext_dav_integration.caldav_sync.manager import WebDAVManager
+        manager = WebDAVManager(self.name)
         try:
             # Discover calendar home
             if not self.default_calendar_url:
@@ -149,6 +149,13 @@ def get_default_address_book(dav_account):
 			return {"name": row.address_book_name, "value": row.url}
 
 	return [{"name": row.address_book_name, "value": row.url} for row in doc.dav_address_books]
+
+@frappe.whitelist()
+def get_address_books(dav_account):
+	if not dav_account:
+		return []
+	doc = frappe.get_doc("DAV Account", dav_account)
+	return [{"name": row.address_book_name, "value": row.url, "is_default": row.is_default} for row in doc.dav_address_books]
 
 @frappe.whitelist()
 def get_default_dav_account():

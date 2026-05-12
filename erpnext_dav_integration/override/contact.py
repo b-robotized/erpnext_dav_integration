@@ -17,6 +17,8 @@ def sync_contact_to_carddav(doc, method):
 			return
 		elif method == "before_insert" and doc.custom_enable_dav_sync and dav.auto_sync_contacts:
 			doc.dav_account = dav.name
+		if not dav.auto_sync_contacts:
+			return
 		if frappe.flags.in_scheduled_job:
 			return
 
@@ -41,6 +43,15 @@ def sync_contact_to_carddav(doc, method):
 		frappe.log_error(frappe.get_traceback(), "DAV Sync Error")
 		raise
 
+def validate_contact(doc, method):
+    if doc.is_new():
+        return
+    # if dav accont is changed and dav_enable_dav_sync is enabled and there is a vcard url, then we need to delete the contact from the old dav account
+    if doc.custom_dav_account and doc.custom_enable_dav_sync:
+        old_doc = frappe.get_doc(doc.doctype, doc.name)
+        if (old_doc.custom_dav_account != doc.custom_dav_account) or (old_doc.custom_dav_address_book_url != doc.custom_dav_address_book_url):
+            delete_contact_from_carddav(old_doc, method)
+    
 
 def update_contact(dav, doc, vcard, password):
 	contact_url = doc.custom_vcard_url

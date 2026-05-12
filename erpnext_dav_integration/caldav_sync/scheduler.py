@@ -1,7 +1,7 @@
 # scheduler.py
 
 import frappe
-from caldav_sync.manager import CalDAVManager
+from caldav_sync.manager import WebDAVManager
 
 def sync_all_caldav_events():
     """Scheduled job to sync all CalDAV events"""
@@ -22,7 +22,7 @@ def sync_all_caldav_events():
 def sync_user_caldav_events(dav_account_name):
     """Sync events for a specific user"""
     dav_account = frappe.get_doc('DAV Account', dav_account_name)
-    manager = CalDAVManager(dav_account_name)
+    manager = WebDAVManager(dav_account_name)
     
     # Discover calendars if not cached
     if not dav_account.default_calendar_url:

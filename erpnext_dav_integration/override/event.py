@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from erpnext_dav_integration.caldav_sync.manager import CalDAVManager
+from erpnext_dav_integration.caldav_sync.manager import WebDAVManager
 from frappe.desk.doctype.event.event import Event
 import json
 
@@ -12,6 +12,7 @@ class CustomEvent(Event):
         - Detect if caldav event was modified
         - Sync to CalDAV if needed
         """
+        self.validate_event()
         if self.create_in_caldav and not self.is_new():
             self.after_insert()
             return
@@ -110,7 +111,7 @@ class CustomEvent(Event):
             frappe.throw("Calendar not found")
 
         # Create in CalDAV
-        manager = CalDAVManager(self.caldav_account)
+        manager = WebDAVManager(self.caldav_account)
         result = manager.create_event_in_calendar(calendar_url, self)
         # Update Event with CalDAV metadata
         self.caldav_event_id = result['caldav_event_id']
@@ -135,7 +136,7 @@ class CustomEvent(Event):
         """Update existing event in CalDAV"""
         
 
-        manager = CalDAVManager(self.caldav_account)
+        manager = WebDAVManager(self.caldav_account)
         result = manager.update_event_in_calendar(self)
 
         # Update ETag and sequence
@@ -143,11 +144,20 @@ class CustomEvent(Event):
         self.caldav_sequence = result['sequence']
         self.caldav_sync_status = 'Connected'
         self.caldav_card_text = result.get('caldav_card_text')
-
+        
+    def validate_event(doc):
+        if doc.is_new():
+            return
+        # if dav accont is changed and dav_enable_dav_sync is enabled and there is a vcard url, then we need to delete the contact from the old dav account
+        if doc.caldav_account and doc.create_in_caldav:
+            old_doc = frappe.get_doc(doc.doctype, doc.name)
+            if (old_doc.caldav_account != doc.caldav_account) or (old_doc.caldav_calendar_url != doc.caldav_calendar_url):
+                old_doc._delete_from_caldav()
+                
     def _delete_from_caldav(self):
         """Delete event from CalDAV"""
         
-        manager = CalDAVManager(self.caldav_account)
+        manager = WebDAVManager(self.caldav_account)
         manager.delete_event_from_calendar(self)
 
     # Event still exists in ERPNext but marked as deleted from provider

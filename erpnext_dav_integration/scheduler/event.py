@@ -3,7 +3,7 @@ import frappe
 from frappe import _
 from datetime import datetime, timedelta
 import pytz
-from erpnext_dav_integration.caldav_sync.manager import CalDAVManager , CalDAVEventSyncor
+from erpnext_dav_integration.caldav_sync.manager import WebDAVManager , CalDAVEventSyncor
 
 # ---------------------------
 # 🔄 HOURLY SYNC
@@ -68,7 +68,7 @@ def sync_user_caldav_events(dav_account_name):
     frappe.logger().info(f"Syncing CalDAV for account: {dav_account_name}")
     
     try:
-        manager = CalDAVManager(dav_account_name)
+        manager = WebDAVManager(dav_account_name)
         
         # Discover calendars if not cached
         if not dav_account.default_calendar_url:
@@ -125,7 +125,7 @@ def sync_single_calendar(dav_account, calendar):
         frappe.logger().info(f"Syncing calendar: {calendar_name}")
         
         # Create manager
-        manager = CalDAVManager(dav_account.name)
+        manager = WebDAVManager(dav_account.name)
         
         # Check if calendar changed using ctag
         last_sync = frappe.db.get_value(
@@ -210,7 +210,7 @@ def check_deleted_events(dav_account_name):
             return
         if not dav_account.auto_delete_caldav_events:
             return
-        manager = CalDAVManager(dav_account_name)
+        manager = WebDAVManager(dav_account_name)
         frappe.log_error(f"Check for deleted events {dav_account_name}3")
         
         # Get all currently synced events for this account

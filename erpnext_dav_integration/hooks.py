@@ -13,6 +13,7 @@ doctype_js = {
 doc_events = {
 	"Contact": {
 		"before_save": "erpnext_dav_integration.override.contact.sync_contact_to_carddav",
+		"validate": "erpnext_dav_integration.override.contact.validate_contact",
 		"on_trash": "erpnext_dav_integration.override.contact.delete_contact_from_carddav",
 	}
 }
@@ -37,10 +38,5 @@ doctype_list_js = {
 override_doctype_class = {	
 	"Event": "erpnext_dav_integration.override.event.CustomEvent"
 }
-permission_query_conditions = {
-    "Contact": "erpnext_dav_integration.permissions.get_contact_permission_query",
-} 
 
-has_permission = {
-    "Contact": "erpnext_dav_integration.permissions.contact_has_permission",
-}
+after_uninstall = "erpnext_dav_integration.install.after_uninstall"

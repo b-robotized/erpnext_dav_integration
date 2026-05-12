@@ -13,12 +13,16 @@ from icalendar import Calendar, Event as ICalEvent, vCalAddress, vText
 import pybreaker
 from .rate_limiter import RateLimiter
 import time
-caldav_breaker = pybreaker.CircuitBreaker(
-    fail_max=5,          # open after 5 failures
-    reset_timeout=60     # retry after 60 sec
-)
+webdav_breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
 
-class CalDAVManager:
+NS = {
+    "d": "DAV:",
+    "oc": "http://owncloud.org/ns",
+    "nc": "http://nextcloud.org/ns",
+    "cs": "http://calendarserver.org/ns/",
+}
+
+class WebDAVManager:
     def __init__(self, dav_account_name):
         self.dav_account = frappe.get_doc("DAV Account", dav_account_name)
         self.username = self.dav_account.username
@@ -34,7 +38,7 @@ class CalDAVManager:
     # ---------------------------
     # 🔍 GENERIC REQUEST HANDLER
     # ---------------------------
-    @caldav_breaker
+    @webdav_breaker
     def _request(self, method, url, data=None, depth=None):
         # ✅ THROTTLING
         self.rate_limiter.wait()
@@ -850,6 +854,7 @@ class CalDAVEventSyncor:
         event.caldav_calendar_url = calendar_url
         event.caldav_etag = caldav_event.get("etag").strip('"')
         event.caldav_sync_status = "Connected"
+        event.dav_calendar = frappe.db.get_value("DAV Calendar", {"dav_account": dav_account.name, "dav_calendar": calendar_url}, "name")
         event.caldav_status = caldav_event.get("status").title()
         #set organizer_email for backward compatibility
         event.caldav_organizer = caldav_event.get("organizer").replace("mailto:", "")
@@ -872,12 +877,12 @@ class CalDAVEventSyncor:
         meta = frappe.get_meta("Event")
         field = meta.get_field("selected_calendar")
         options = []
-        selected_calender = None
+        selected_calendar = None
         color = None
         for cal in dav_account.available_calendars:
             options.append(cal.display_name)
             if cal.calendar_url == calendar_url:
-                selected_calender = cal.display_name
+                selected_calendar = cal.display_name
                 color = cal.calendar_color
         frappe.db.set_value(
             "DocField",
@@ -885,7 +890,8 @@ class CalDAVEventSyncor:
             "options",
             "\n".join(options)
         )
-        event_doc.selected_calendar = selected_calender
+        event_doc.selected_calendar = selected_calendar
+        event_doc.dav_calendar = frappe.db.get_value("DAV Calendar", {"dav_account": dav_account.name, "dav_calendar": selected_calendar}, "name")
         event_doc.color = color
     # ---------------------------
     # 👥 PARTICIPANT SYNC

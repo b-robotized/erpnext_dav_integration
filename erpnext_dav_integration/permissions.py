@@ -62,3 +62,9 @@ def contact_has_permission(doc, ptype: str = "read", user: str | None = None) ->
     pairs = _get_user_address_book_pairs(user)
 
     return (doc.custom_dav_account, doc.custom_dav_address_book) in pairs
+
+def get_event_permission_query(user: str | None = None) -> str:
+    return ""
+
+def event_has_permission(doc, ptype: str = "read", user: str | None = None) -> bool:
+    return True

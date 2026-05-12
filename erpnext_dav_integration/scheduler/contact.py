@@ -271,6 +271,9 @@ def create_and_update_contacts_from_vcf(
 				contact_doc.designation = designation
 				contact_doc.custom_last_sync = datetime.now()
 				contact_doc.custom_dav_account = dav_account_name
+				contact_doc.dav_addressbook = frappe.db.get_value(
+					"DAV AddressBook", {"dav_account": dav_account_name, "dav_addressbook": address_book}
+				)
 				contact_doc.custom_dav_uid = uid
 				contact_doc.custom_vcard = vcard.serialize()
 				contact_doc.custom_sync_status = "Success"
@@ -607,7 +610,10 @@ def deletion_of_trashed_contacts():
 			auth=HTTPBasicAuth(dav.username, get_decrypted_password("DAV Account", dav.name, "app_password")),
 		)
 		if res.status_code == 404:
-			frappe.delete_doc("Contact", contact.name)
+			try:
+				frappe.delete_doc("Contact", contact.name)
+			except Exception:
+				pass
 
 
 def update_all_dav_accounts_address_book_list():

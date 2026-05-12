@@ -3,7 +3,7 @@
 import frappe
 from frappe import _
 import json, time
-from .manager import CalDAVManager, CalDAVEventSyncor
+from .manager import WebDAVManager, CalDAVEventSyncor
 
 def check_rate_limit(key, limit=20, seconds=60):
     cache = frappe.cache()
@@ -18,9 +18,6 @@ def check_rate_limit(key, limit=20, seconds=60):
 def get_calendars(dav_account):
     """Get available calendars for the account"""
     check_rate_limit(f"user:{frappe.session.user}:get_calendars", 10, 60)
-    # Check permission
-    if not frappe.has_permission('DAV Account', 'read', dav_account):
-        frappe.throw("No permission", frappe.PermissionError)
     
     dav_doc = frappe.get_doc('DAV Account', dav_account)
     return dav_doc.available_calendars
@@ -50,7 +47,7 @@ def refresh_calendar_discovery(dav_account):
     if not frappe.has_permission('DAV Account', 'write', dav_account):
         frappe.throw("No permission", frappe.PermissionError)
     
-    manager = CalDAVManager(dav_account)
+    manager = WebDAVManager(dav_account)
     
     # Discover calendar-home-set
     calendar_home = manager.get_calendar_home_set()
@@ -77,7 +74,7 @@ def fetch_events_from_dav_calendar():
     dav_accounts = frappe.get_all('DAV Account', filters={'enabled': 1})
 
     for account in dav_accounts:
-        manager = CalDAVManager(account.name)
+        manager = WebDAVManager(account.name)
 
         try:
             manager.sync_caldav_to_erpnext()
@@ -117,12 +114,10 @@ def sync_with_dav_calendar(event_names):
             doc.caldav_sync_status = 'OutOfSync'
             doc.save(ignore_permissions=True)
             return
-        frappe.msgprint("Auto-sync enabled, checking for changes...")
         
-
         try:
             # Sync to CalDAV
-            manager = CalDAVManager(doc.caldav_account)
+            manager = WebDAVManager(doc.caldav_account)
             result = manager.update_event_in_calendar(doc)
 
             # Update metadata
@@ -177,7 +172,7 @@ def create_caldav_event(event_name, calendar_name):
             frappe.throw(_("Calendar not found"))
         
         # Create in CalDAV
-        manager = CalDAVManager(event.caldav_account)
+        manager = WebDAVManager(event.caldav_account)
         result = manager.create_event_in_calendar(calendar_record['calendar_url'], event)
         
         # Update Event
@@ -233,7 +228,7 @@ def sync_to_caldav(event_name):
         frappe.throw(_("Calendar account not found"))
     
     try:
-        manager = CalDAVManager(event.caldav_account)
+        manager = WebDAVManager(event.caldav_account)
         result = manager.update_event_in_calendar(event)
         
         # Update metadata
@@ -279,7 +274,7 @@ def delete_caldav_event(event_name):
         frappe.throw(_("Calendar account not found"))
     
     try:
-        manager = CalDAVManager(event.caldav_account)
+        manager = WebDAVManager(event.caldav_account)
         manager.delete_event_from_calendar(event)
         
         # Clear CalDAV fields
@@ -326,7 +321,7 @@ def refresh_from_caldav(event_name):
     
     try:
         # Fetch from CalDAV
-        manager = CalDAVManager(event.caldav_account)
+        manager = WebDAVManager(event.caldav_account)
         dav_account = frappe.get_doc('DAV Account', event.caldav_account)
         
         event_url = event.caldav_event_url
@@ -459,7 +454,7 @@ def send_invitation(event_name, participant_email):
     
     try:
         # Sync to calendar (which sends invitation)
-        manager = CalDAVManager(event.caldav_account)
+        manager = WebDAVManager(event.caldav_account)
         result = manager.update_event_in_calendar(event)
         
         event.caldav_etag = result['etag']

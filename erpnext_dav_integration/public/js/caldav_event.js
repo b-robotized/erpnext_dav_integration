@@ -137,11 +137,11 @@ frappe.ui.form.on('Event', {
             let user = frappe.session.user;
 
             if (user && user !== "Guest") {
-            
-                frm.set_value('caldav_organizer',
-                    user !== "Administrator" ? user : null
-                );
-            
+                if (!frm.doc.caldav_organizer) {
+                    frm.set_value('caldav_organizer',
+                        user !== "Administrator" ? user : null
+                    );
+                }
                 frappe.db.get_value('User', user, 'full_name')
                     .then(r => {
                         if (r.message) {
@@ -165,6 +165,7 @@ frappe.ui.form.on('Event', {
                     if (r.message) {
                         frm.set_value('caldav_calendar_url', r.message[0]);
                         frm.set_value('color', r.message[1]);
+                        frm.set_value('create_in_caldav', 1);
                     }
                 }
             });

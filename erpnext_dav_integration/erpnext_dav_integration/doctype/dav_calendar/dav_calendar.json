@@ -1,0 +1,71 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "prompt",
+ "creation": "2026-05-07 09:47:29.469920",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "dav_account",
+  "column_break_kvho",
+  "dav_calendar"
+ ],
+ "fields": [
+  {
+   "fieldname": "dav_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "DAV Account",
+   "options": "DAV Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_kvho",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.dav_account",
+   "fieldname": "dav_calendar",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "DAV Calendar"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-11 10:25:24.622844",
+ "modified_by": "Administrator",
+ "module": "Erpnext Dav Integration",
+ "name": "DAV Calendar",
+ "naming_rule": "Set by user",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
