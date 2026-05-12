@@ -293,6 +293,8 @@ def create_and_update_contacts_from_vcf(
 				# ------------------------
 				emails = vcard.contents.get("email", [])
 				for email in emails:
+					if not email.value:
+						continue
 					email_value = str(email.value)
 					contact_doc.append(
 						"email_ids",
