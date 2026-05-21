@@ -33,11 +33,17 @@ def sync_contact_to_carddav(doc, method):
 			return
 
 		vcard = build_vcard(doc)
-
-		if doc.custom_vcard_url:
-			update_contact(dav, doc, vcard, password)
-		else:
-			create_contact(dav, doc, vcard, password)
+		try:
+			if doc.custom_vcard_url:
+				update_contact(dav, doc, vcard, password)
+			else:
+				create_contact(dav, doc, vcard, password)
+		except Exception as e:
+			frappe.log_error(f"Error syncing contact {doc.name} to CardDAV: {str(e)}", "DAV Sync Error")
+			doc.custom_sync_status = "Failed"
+			doc.custom_last_sync = frappe.utils.now()
+			doc.save(ignore_permissions=True)
+			raise
 
 	except Exception:
 		frappe.log_error(frappe.get_traceback(), "DAV Sync Error")
@@ -64,7 +70,7 @@ def update_contact(dav, doc, vcard, password):
 	)
 
 	if res.status_code not in (201, 204):
-		frappe.throw(f"Create failed: {res.status_code} - {res.text}")
+		frappe.log_error(f"Update failed: {res.status_code} - {res.text}", "DAV Sync Error")
 	doc.custom_sync_status = "Success"
 	doc.custom_last_sync = frappe.utils.now()
 
@@ -86,7 +92,7 @@ def create_contact(dav, doc, vcard, password):
 	)
 
 	if res.status_code not in (201, 204):
-		frappe.throw(f"Create failed: {res.status_code} - {res.text}")
+		frappe.log_error(f"Create failed: {res.status_code} - {res.text}", "DAV Sync Error")
 	doc.custom_sync_status = "Success"
 	doc.custom_last_sync = frappe.utils.now()
 	doc.custom_vcard_url = contact_url
