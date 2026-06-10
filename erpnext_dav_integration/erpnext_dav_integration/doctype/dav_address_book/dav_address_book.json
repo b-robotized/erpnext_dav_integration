@@ -31,7 +31,7 @@
    "default": "0",
    "fieldname": "is_default",
    "fieldtype": "Check",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Is Default"
   }
  ],
@@ -39,7 +39,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-03-20 16:59:45.863788",
+ "modified": "2026-06-05 17:32:38.950235",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV Address Book",
