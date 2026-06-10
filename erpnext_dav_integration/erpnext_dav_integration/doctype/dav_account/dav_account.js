@@ -43,43 +43,37 @@ frappe.ui.form.on("DAV Account", {
 			});
 		});
 	},
-	async validate(frm) {
-	    const createRoleIfMissing = async (role_name) => {
-	        const exists = await frappe
-	            .xcall("frappe.client.get", { doctype: "Role", name: role_name })
-	            .then(() => true)
-	            .catch(() => false);
-		
-	        if (exists) return;
-		
-	        try {
-	            await frappe.xcall("frappe.client.insert", {
-	                doc: {
-	                    doctype: "Role",
-	                    role_name: role_name,
-	                },
-	            });
-	            frappe.msgprint(`Role "${role_name}" created successfully.`);
-	        } catch (err) {
-	            console.error(`Error creating role "${role_name}":`, err);
-	            frappe.msgprint(`Failed to create role "${role_name}".`);
-	        }
-	    };
-	
-	    let tasks = [];
-	
-	    // 🔹 Address Books Roles
-	    if (frm.doc.dav_address_books?.length) {
-	        frm.doc.dav_address_books.forEach((row) => {
-	            if (!row.address_book_name) return;
-			
-	            const role_name = `DAV Address Book: ${frm.doc.name} - ${row.address_book_name}`;
-	            tasks.push(createRoleIfMissing(role_name));
-	        });
-	    }
-	
-	    // 🔥 Wait for all role creations before saving
-	    await Promise.all(tasks);
+	default(frm) {
+		if (frm.doc.__islocal) {
+			frm.set_value("enabled", 1);
+		}
+	},
+	validate(frm) {
+		if (frm.doc.enabled && frm.doc.default) {
+			// Check if there's another enabled account marked as default
+			frappe.call({
+				method: "frappe.client.get_list",
+				args: {
+					doctype: "DAV Account",
+					filters: {
+						enabled: 1,
+						default: 1,
+						name: ["!=", frm.doc.name],
+					},
+					fields: ["name"],
+				},
+				callback: function (r) {
+					if (r.message && r.message.length > 0) {
+						frm.set_value("default", 0);
+						frappe.msgprint(
+							"Another DAV Account is already marked as default. Please uncheck the default option for the other account before saving this one.",
+							"Default Account Conflict"
+						);
+						
+					}
+				},
+			});
+		}
 	},
 	discover_calendars_btn(frm) {
 		frappe.call({

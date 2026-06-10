@@ -30,16 +30,20 @@ def get_calendar_url(dav_account, calendar_name):
     if not frappe.has_permission('DAV Account', 'read', dav_account):
         frappe.throw("No permission", frappe.PermissionError)
     
-    calendar_url, calendar_color = frappe.db.get_value(
+    calendar_values = frappe.db.get_value(
         'DAV Account Calendar',
         {'parent': dav_account, 'display_name': calendar_name},
-        ['calendar_url','calendar_color']
+        ['calendar_url', 'calendar_color']
     )
-    
+
+    if not calendar_values:
+        frappe.throw("Calendar not found")
+
+    calendar_url, calendar_color = calendar_values
     if not calendar_url:
         frappe.throw("Calendar not found")
-    
-    return calendar_url , calendar_color
+
+    return calendar_url, calendar_color
 
 @frappe.whitelist()
 def refresh_calendar_discovery(dav_account):
@@ -71,9 +75,16 @@ def refresh_calendar_discovery(dav_account):
     return "Calendars discovered successfully"
 
 def fetch_events_from_dav_calendar():
-    dav_accounts = frappe.get_all('DAV Account', filters={'enabled': 1})
+    frappe.flags.in_caldav_sync = True  # Set a flag to indicate sync is in progress
+    account = frappe.get_doc('DAV Account', {'enabled': 1, 'default': 1})
 
-    for account in dav_accounts:
+    if not account:
+        # Fallback to any enabled DAV account if there is no default configured
+        account = frappe.get_doc('DAV Account', {'enabled': 1, 'default': 0})
+
+    if not account:
+        frappe.throw(_("No active DAV Account with default calendar found"))
+    else:
         manager = WebDAVManager(account.name)
 
         try:
@@ -88,7 +99,7 @@ def fetch_events_from_dav_calendar():
 def enqueue_fetch_events_from_dav_calendar():
     """Enqueue the fetch_events_from_dav_calendar function to run in the background"""
     check_rate_limit(f"user:{frappe.session.user}:enqueue_fetch_events_from_dav_calendar", 10, 60)
-    frappe.enqueue('erpnext_dav_integration.caldav_sync.api.fetch_events_from_dav_calendar', queue='long', timeout=6000,deduplicate=True)
+    frappe.enqueue('erpnext_dav_integration.caldav_sync.api.fetch_events_from_dav_calendar', queue='long', timeout=6000)
 
 
 @frappe.whitelist()
@@ -177,7 +188,7 @@ def create_caldav_event(event_name, calendar_name):
         
         # Update Event
         event.caldav_event_id = result['caldav_event_id']
-        event.caldav_event_url = result['caldav_url']
+        event.caldav_event_url = manager.base_url.rstrip('/')+ '/' + result['caldav_url'].lstrip('/')
         event.caldav_uuid = result['caldav_uuid']
         event.caldav_etag = result.get('etag')
         event.caldav_sync_status = 'Connected'

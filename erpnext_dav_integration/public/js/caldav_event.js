@@ -163,10 +163,17 @@ frappe.ui.form.on('Event', {
                 },
                 callback: function(r) {
                     if (r.message) {
+                        if(r.message.length > 0){
                         frm.set_value('caldav_calendar_url', r.message[0]);
                         frm.set_value('color', r.message[1]);
                         frm.set_value('create_in_caldav', 1);
+
+                        } else {
+                            frappe.msgprint(__('Selected calendar not found on server. Please sync your calendars and try again.'));
+                            frm.set_value('selected_calendar', null);
+                        }
                     }
+
                 }
             });
             // reset event_id to allow creating new event in selected calendar

@@ -12,6 +12,14 @@ class CustomEvent(Event):
         - Detect if caldav event was modified
         - Sync to CalDAV if needed
         """
+        if  hasattr(self, 'caldav_account') and self.caldav_account:
+            Manager = WebDAVManager(self.caldav_account)
+            if self.caldav_event_url:
+                if not Manager.validate_dav_url(self.caldav_event_url):
+                    frappe.throw("Event is deleted from calendar or calendar URL is invalid. Please reselect calendar to sync.")
+            if self.caldav_calendar_url:
+                if not Manager.validate_dav_url(self.caldav_calendar_url):
+                    frappe.throw("Selected calendar is invalid. Please reselect calendar to sync.")
         self.validate_event()
         if self.create_in_caldav and not self.is_new():
             self.after_insert()
@@ -100,6 +108,9 @@ class CustomEvent(Event):
 
         if not self.caldav_account:
             frappe.throw("Please select a calendar account")
+        if frappe.flags.in_caldav_sync:
+            # Avoid recursive sync loop if create_in_caldav is set on an update
+            return
         # Get calendar URL
         calendar_url = frappe.db.get_value(
             'DAV Account Calendar',
