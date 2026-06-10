@@ -1,3 +1,80 @@
+[project]
+name = "erpnext_dav_integration"
+authors = [
+    { name = "b-robotized group", email = "arun.govind@cloudconverge.io" }
+]
+description = "DAV (CalDAV/CardDAV) Integration for ERPNext"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+
+dependencies = [
+    "requests",
+    "langcodes",
+    "language-data",
+    "icalendar",
+    "pybreaker"
+]
+
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["erpnext_dav_integration"]
+
+
+[tool.bench.frappe-dependencies]
+frappe = ">=16.0.0"
+erpnext = ">=16.0.0"
+
+# Dev dependencies (optional)
+[tool.bench.dev-dependencies]
+# pytest = "~=7.4"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "E",
+    "W",
+    "I",
+    "UP",
+    "B",
+    "RUF",
+]
+ignore = [
+    "B017",
+    "B018",
+    "B023",
+    "B904",
+    "E101",
+    "E402",
+    "E501",
+    "E741",
+    "F401",
+    "F403",
+    "F405",
+    "F722",
+    "W191",
+    "UP030",
+    "UP031",
+    "UP032",
+    "UP037",
+    "UP040",
+]
+
+typing-modules = ["frappe.types.DF"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "tab"
+docstring-code-format = true
+
+[project.urls]
+Homepage = "https://github.com/b-robotized/erpnext_dav_integration"
+Repository = "https://github.com/b-robotized/erpnext_dav_integration.git"
+"Bug Reports" = "https://github.com/b-robotized/erpnext_dav_integration/issues"

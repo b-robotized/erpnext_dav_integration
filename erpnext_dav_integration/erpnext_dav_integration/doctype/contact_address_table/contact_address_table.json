@@ -1,0 +1,93 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-26 11:37:28.667072",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "type",
+  "po_box",
+  "street",
+  "city",
+  "extended",
+  "region",
+  "column_break_lmru",
+  "code",
+  "country",
+  "full_address"
+ ],
+ "fields": [
+  {
+   "fieldname": "street",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Street"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "City"
+  },
+  {
+   "fieldname": "region",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Region"
+  },
+  {
+   "fieldname": "column_break_lmru",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Country"
+  },
+  {
+   "fieldname": "full_address",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Full Address"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Type"
+  },
+  {
+   "fieldname": "po_box",
+   "fieldtype": "Data",
+   "label": "PO Box"
+  },
+  {
+   "fieldname": "extended",
+   "fieldtype": "Data",
+   "label": "Extended"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-01 11:37:44.640061",
+ "modified_by": "Administrator",
+ "module": "Erpnext Dav Integration",
+ "name": "Contact Address Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

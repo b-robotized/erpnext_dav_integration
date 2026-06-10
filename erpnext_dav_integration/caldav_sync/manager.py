@@ -1,0 +1,1028 @@
+import requests
+from requests.auth import HTTPBasicAuth
+from icalendar import Calendar, Event as ICalEvent
+import xml.etree.ElementTree as ET
+import frappe
+from frappe.utils.password import get_decrypted_password
+import datetime
+from datetime import datetime, timezone
+from uuid import uuid4
+import pytz
+from datetime import datetime
+from icalendar import Calendar, Event as ICalEvent, vCalAddress, vText
+import pybreaker
+from .rate_limiter import RateLimiter
+import time
+webdav_breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=60)
+
+NS = {
+    "d": "DAV:",
+    "oc": "http://owncloud.org/ns",
+    "nc": "http://nextcloud.org/ns",
+    "cs": "http://calendarserver.org/ns/",
+}
+
+class WebDAVManager:
+    def __init__(self, dav_account_name):
+        self.dav_account = frappe.get_doc("DAV Account", dav_account_name)
+        self.username = self.dav_account.username
+        self.password = get_decrypted_password(
+            "DAV Account",
+            dav_account_name,
+            "app_password"
+        )
+        self.base_url = self.dav_account.base_url.rstrip("/")
+        self.auth = HTTPBasicAuth(self.username, self.password)
+        self.rate_limiter = RateLimiter(rate=5, per=1)
+
+    # ---------------------------
+    # 🔍 GENERIC REQUEST HANDLER
+    # ---------------------------
+    @webdav_breaker
+    def _request(self, method, url, data=None, depth=None):
+        # ✅ THROTTLING
+        self.rate_limiter.wait()
+        headers = {
+            "Content-Type": "application/xml",
+        }
+        if depth:
+            headers["Depth"] = depth
+
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                data=data,
+                auth=self.auth,
+                timeout=15,  # 🔴 reduce from 120 → fail fast
+            )
+
+            # 🔴 Important: treat 5xx as failure
+            if response.status_code >= 500:
+                raise Exception(f"Server error: {response.status_code}")
+
+            return response
+
+        except requests.exceptions.RequestException as e:
+            frappe.log_error(f"CalDAV request failed: {str(e)}")
+            raise
+
+    # ---------------------------
+    # 🔍 XML HELPERS
+    # ---------------------------
+    def _find_text(self, parent, tag_suffix):
+        """Find element ignoring namespace"""
+        for elem in parent.iter():
+            if elem.tag.endswith(tag_suffix):
+                return elem.text
+        return None
+
+    def _has_calendar_resource(self, resourcetype_elem):
+        if resourcetype_elem is None:
+            return False
+
+        for child in resourcetype_elem:
+            if child.tag.endswith("calendar"):
+                return True
+        return False
+
+    # ---------------------------
+    # 🏠 STEP 1: DISCOVER CALENDAR HOME
+    # ---------------------------
+    def get_calendar_home_set(self):
+        url = f"{self.base_url}/remote.php/dav/principals/users/{self.username}/"
+
+        data = """<?xml version="1.0"?>
+        <d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+            <d:prop>
+                <c:calendar-home-set />
+            </d:prop>
+        </d:propfind>
+        """
+
+        try:
+            response = self._request("PROPFIND", url, data=data, depth="0")
+            root = ET.fromstring(response.content)
+
+            for elem in root.iter():
+                if elem.tag.endswith("calendar-home-set"):
+                    for child in elem:
+                        if child.tag.endswith("href"):
+                            return child.text.rstrip("/") + "/"
+
+        except Exception as e:
+            frappe.log_error(f"Calendar home discovery failed: {str(e)}")
+
+        # ✅ Fallback for Nextcloud
+        fallback = f"/remote.php/dav/calendars/{self.username}/"
+        return fallback
+
+    # ---------------------------
+    # 📅 STEP 2: DISCOVER CALENDARS
+    # ---------------------------
+    def discover_calendars(self):
+        calendar_home = self.get_calendar_home_set()
+        url = f"{self.base_url}{calendar_home}"
+
+        data = """<?xml version="1.0"?>
+        <d:propfind 
+            xmlns:d="DAV:" 
+            xmlns:c="urn:ietf:params:xml:ns:caldav"
+            xmlns:cs="http://calendarserver.org/ns/"
+            xmlns:oc="http://owncloud.org/ns"
+            xmlns:nc="http://nextcloud.org/ns"
+            xmlns:ical="http://apple.com/ns/ical/">
+            <d:prop>
+                <d:resourcetype />
+                <d:displayname />
+                <cs:getctag />
+                <d:sync-token />
+                <c:supported-calendar-component-set />
+                <c:calendar-timezone />
+                <ical:calendar-color />
+            </d:prop>
+        </d:propfind>"""
+
+        response = self._request("PROPFIND", url, data=data, depth="1")
+        calendars = []
+        root = ET.fromstring(response.content)
+
+        for resp in root.iter():
+            if not resp.tag.endswith("response"):
+                continue
+
+            href = self._find_text(resp, "href")
+
+            prop = None
+            for elem in resp.iter():
+                if elem.tag.endswith("prop"):
+                    prop = elem
+                    break
+
+            if not prop:
+                continue
+
+            resourcetype = None
+            for elem in prop:
+                if elem.tag.endswith("resourcetype"):
+                    resourcetype = elem
+                    break
+
+            if self._has_calendar_resource(resourcetype):
+                displayname = self._find_text(prop, "displayname")
+                color = self._extract_color(prop)
+                tz_data = self._find_text(prop, "calendar-timezone")
+                tz_info = extract_timezone_details(tz_data)
+                
+                timezone = normalize_timezone(tz_info.get("tzid"))
+                getctag = self._find_text(prop, "getctag") or self._find_text(prop, "sync-token")
+                calendars.append({
+                    "url": href,
+                    "name": displayname or "Calendar",
+                    "color": color,
+                    "timezone": timezone,
+                    "getctag": getctag
+                })
+
+        return calendars
+
+    def _extract_color(self, prop):
+        color = self._find_text(prop, "calendar-color")
+        if not color:
+            return None
+
+        # Nextcloud usually returns hex like: #FF0000
+        return color.strip()
+    def _extract_timezone(self, prop):
+        tz = self._find_text(prop, "calendar-timezone")
+        return tz.strip() if tz else None
+    
+    def fetch_single_event(self, event_url):
+        url = f"{self.base_url}{event_url}"
+
+        
+
+        response = self._request("GET", url, depth="1")
+        cal = response.text
+
+        
+        event_data = self._parse_ical_event(Calendar.from_ical(cal))
+        
+        if event_data:
+            event_data.update({
+                "caldav_url": event_url,
+                "etag": response.headers.get('ETag', '').strip('"'),
+                "text": response.text
+            })
+            return event_data
+        return None
+
+    # ---------------------------
+    # 📥 STEP 3: FETCH EVENTS
+    # ---------------------------
+    def fetch_events_from_calendar(self, calendar_url):
+        url = f"{self.base_url}{calendar_url}"
+
+        data = """<?xml version="1.0"?>
+        <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+            <d:prop>
+                <d:getetag />
+                <c:calendar-data />
+            </d:prop>
+            <c:filter>
+                <c:comp-filter name="VCALENDAR">
+                    <c:comp-filter name="VEVENT" />
+                </c:comp-filter>
+            </c:filter>
+        </c:calendar-query>"""
+
+        response = self._request("REPORT", url, data=data, depth="1")
+        root = ET.fromstring(response.content)
+
+        events = []
+
+        for resp in root.iter():
+            if not resp.tag.endswith("response"):
+                continue
+
+            href = self._find_text(resp, "href")
+            etag = self._find_text(resp, "getetag")
+
+            cal_data = None
+            for elem in resp.iter():
+                if elem.tag.endswith("calendar-data"):
+                    cal_data = elem.text
+                    break
+
+            if not cal_data:
+                continue
+
+            try:
+                cal = Calendar.from_ical(cal_data)
+                event_data = self._parse_ical_event(cal)
+            
+
+                if event_data:
+                    event_data.update({
+                        "caldav_url": href,
+                        "etag": etag,
+                        "calendar_url": calendar_url,
+                        "text": cal_data
+                    })
+                    events.append(event_data)
+
+            except Exception as e:
+                frappe.log_error(f"Event parse failed ({href}): {str(e)}")
+
+        return events
+
+    # ---------------------------
+    # 🧠 ICAL PARSER
+    # ---------------------------
+    def _parse_ical_event(self, cal):
+        for component in cal.walk():
+            if component.name == "VEVENT":
+                return {
+                    "uid": str(component.get("uid")),
+                    "summary": str(component.get("summary", "")),
+                    "description": str(component.get("description", "")),
+                    "location": str(component.get("location", "")),
+                    "dtstart": component.get("dtstart").dt if component.get("dtstart") else None,
+                    "dtend": component.get("dtend").dt if component.get("dtend") else None,
+                    "attendees": self._extract_attendees(component),
+                    "organizer": str(component.get("organizer", "").replace("mailto:", "")) if component.get("organizer") else "",
+                    "organizer_cn": str(component.get("organizer").params.get("cn", "")) if component.get("organizer") and hasattr(component.get("organizer"), 'params') else "",
+                    "status": str(component.get("status", "CONFIRMED"))
+                }
+        return None
+
+    def _extract_attendees(self, component):
+        attendees = []
+        attendees_raw = component.get("attendee", [])
+        if not isinstance(attendees_raw, list):
+            attendees_raw = [attendees_raw]
+
+        for attendee in attendees_raw:
+            email = str(attendee).replace("mailto:", "")
+            cn = ""
+            rsvp = False
+            partstat = "NEEDS-ACTION"
+            if hasattr(attendee, 'params'):
+                cn = attendee.params.get("CN", "")
+                rsvp = attendee.params.get("RSVP", "FALSE") == "TRUE"
+                partstat = attendee.params.get("PARTSTAT", "NEEDS-ACTION")
+            attendees.append({
+                "email": email,
+                "cn": cn,
+                "rsvp": rsvp,
+                "partstat": partstat,
+            })
+
+        return attendees
+
+    # ---------------------------
+    # 🔄 FULL SYNC
+    # ---------------------------
+    def sync_caldav_to_erpnext(self):
+        calendars = self.discover_calendars()
+
+        for cal in calendars:
+            events = self.fetch_events_from_calendar(cal["url"])
+
+            # ✅ STEP 1: Sync existing events
+            current_uids = set()
+
+            for event in events:
+                try:
+                    current_uids.add(event.get("uid"))
+
+                    CalDAVEventSyncor.sync_caldav_to_erpnext(
+                        event,
+                        self.dav_account,
+                        cal["url"]
+                    )
+                except Exception as e:
+                    frappe.log_error(f"Sync failed for {event.get('uid')}: {str(e)}")
+
+            # ✅ STEP 2: Detect deletions
+            # self._mark_deleted_events(current_uids, cal["url"])
+    def _mark_deleted_events(self, current_uids, calendar_url):
+        """
+        Mark ERPNext events as deleted if they no longer exist in CalDAV
+        """
+
+        erp_events = frappe.get_all(
+            "Event",
+            filters={
+                "caldav_account": self.dav_account.name,
+                "caldav_calendar_url": calendar_url,
+                "caldav_sync_status": ["!=", "Deleted in Provider"]
+            },
+            fields=["name", "caldav_event_id"]
+        )
+
+        for event in erp_events:
+            if event.caldav_event_id not in current_uids:
+                try:
+                    CalDAVEventSyncor.handle_caldav_deletion(
+                        event.caldav_event_id,
+                        self.dav_account.name
+                    )
+                except Exception as e:
+                    frappe.log_error(f"Deletion sync failed for {event.name}: {str(e)}")
+    
+    # ---------------------------
+    # ✨ CREATE NEW EVENT
+    # ---------------------------
+    def create_event_in_calendar(self, calendar_url, event_doc):
+        """
+        Create new event in Nextcloud Calendar
+        
+        Args:
+            calendar_url: '/remote.php/dav/calendars/user/personal/'
+            event_doc: ERPNext Event doctype instance
+        
+        Returns:
+            dict with caldav_url, caldav_uuid, etag, caldav_card_text
+        """
+        # Generate UUID for the event
+        event_uuid = str(uuid4())
+        caldav_url = f"{calendar_url}{event_uuid}.ics"
+        
+        # Build iCalendar
+        cal = Calendar()
+        cal.add('prodid', '-//Nextcloud//Calendar app 6.2.1//EN')
+        cal.add('version', '2.0')
+        cal.add('calscale', 'GREGORIAN')
+        
+        # Create VEVENT
+        vevent = ICalEvent()
+        
+        # Core event data
+        vevent.add('uid', event_uuid)
+        vevent.add('dtstamp', datetime.now(pytz.UTC))
+        vevent.add('created', datetime.now(pytz.UTC))
+        vevent.add('last-modified', datetime.now(pytz.UTC))
+        vevent.add('sequence', 0)
+        
+        # Event details - FIX: Use correct field name
+        vevent.add('summary', event_doc.subject or 'No Title')
+        
+        # 🔴 FIX: Handle both possible field names
+        description = (
+            getattr(event_doc, 'event_public_description', None) or ""
+        )
+        
+        if description:
+            vevent.add('description', description)
+        
+        if event_doc.location:
+            vevent.add('location', event_doc.location)
+        
+        # Dates - handle both datetime and date objects
+        if event_doc.starts_on:
+            vevent.add('dtstart', self._to_utc_datetime(event_doc.starts_on))
+        
+        if event_doc.ends_on:
+            vevent.add('dtend', self._to_utc_datetime(event_doc.ends_on))
+        else:
+            # Ensure dtend exists (required by CalDAV)
+            if event_doc.starts_on:
+                vevent.add('dtend', self._to_utc_datetime(event_doc.starts_on))
+        
+        vevent.add('status', 'CONFIRMED')
+        
+        # Organizer - 🔴 FIX: Use lowercase mailto (RFC standard)
+        organizer_email = event_doc.caldav_organizer 
+        organizer = vCalAddress(f'mailto:{organizer_email}')
+        organizer.params['cn'] = event_doc.caldav_organizer_name
+        vevent.add('organizer', organizer)
+        
+        # Add participants (only those marked for invitation)
+        added_emails = set()
+        
+        for participant in event_doc.get('caldav_participants_table', []):
+            if participant.email in added_emails:
+                continue
+            
+            added_emails.add(participant.email)
+            
+            attendee = vCalAddress(f'mailto:{participant.email}')
+            
+            if participant.contact:
+                contact_doc = frappe.get_doc('Contact', participant.contact)
+                attendee.params['cn'] = contact_doc.first_name or participant.email
+            else:
+                attendee.params['cn'] = participant.email
+            
+            attendee.params['role'] = 'REQ-PARTICIPANT'
+            attendee.params['partstat'] = participant.get('invitation_status', 'NEEDS-ACTION')
+            attendee.params['rsvp'] = 'TRUE'
+            attendee.params['cutype'] = 'INDIVIDUAL'
+            
+            vevent.add('attendee', attendee)
+        
+        cal.add_component(vevent)
+        
+        # Convert to iCalendar string
+        ical_data = cal.to_ical()
+        # PUT to create event
+        url = f"{self.base_url}{caldav_url}"
+        headers = {
+            'Content-Type': 'text/calendar; charset=utf-8',
+        }
+        
+        try:
+            response = requests.request(
+                'PUT',
+                url,
+                headers=headers,
+                data=ical_data,
+                auth=self.auth,
+                timeout=30
+            )
+            frappe.msgprint(f"Creating event in calendar: {calendar_url}", alert=True)
+        except Exception as e:
+            error_msg = f"CalDAV create request failed: {str(e)}"
+            frappe.log_error(error_msg)
+            frappe.throw(error_msg)
+        
+        # Handle response
+        if response.status_code not in [201, 204]:
+            error_msg = f"Failed to create event in CalDAV: {response.status_code}\n{response.text}"
+            frappe.log_error(error_msg)
+            frappe.throw(error_msg)
+        
+        # Extract UUID from URL
+        caldav_uuid = caldav_url.replace('.ics', '').split('/')[-1]
+        
+        # 🔴 FIX: Ensure etag is string, not bytes
+        etag = response.headers.get('ETag', '').strip('"')
+        
+        return {
+            'caldav_url': caldav_url,
+            'caldav_uuid': caldav_uuid,
+            'caldav_event_id': event_uuid,
+            'etag': etag,
+            'caldav_card_text': ical_data.decode('utf-8') if isinstance(ical_data, bytes) else ical_data
+        }
+    # ---------------------------
+    # 🔄 UPDATE EXISTING EVENT (CORRECTED)
+    # ---------------------------
+    def update_event_in_calendar(self, event_doc):
+        """
+        Update existing event in Nextcloud Calendar
+        
+        
+        """
+        # 🟢 NEW DOC → treat as changed OR skip
+        
+        if not event_doc.caldav_event_id:
+            frappe.throw("Event not connected to CalDAV")
+        
+        if not event_doc.caldav_event_url:
+            frappe.throw("CalDAV URL not found")
+        
+        # 🔴 FIX: Correct sequence handling
+        sequence = (event_doc.caldav_sequence or 0) + 1
+        
+        # Build calendar
+        cal = Calendar()
+        cal.add('prodid', '-//Nextcloud//Calendar app 6.2.1//EN')
+        cal.add('version', '2.0')
+        cal.add('calscale', 'GREGORIAN')
+        
+        vevent = ICalEvent()
+        
+        # Core fields (DO NOT CHANGE UID)
+        vevent.add('uid', event_doc.caldav_event_id)
+        vevent.add('dtstamp', datetime.now(pytz.UTC))
+        vevent.add('created', self._to_utc_datetime(event_doc.caldav_created) or datetime.now(pytz.UTC))
+        vevent.add('last-modified', datetime.now(pytz.UTC))
+        vevent.add('sequence', sequence)
+        
+        # Basic details
+        vevent.add('summary', event_doc.subject or 'No Title')
+        
+        # 🔴 FIX: Handle both possible field names
+        description = (
+            getattr(event_doc, 'event_public_description', None) or ""
+        )
+        
+        if description:
+            vevent.add('description', description)
+        
+        if event_doc.location:
+            vevent.add('location', event_doc.location)
+        
+        # Dates (ensure dtend exists)
+        if event_doc.starts_on:
+            vevent.add('dtstart', self._to_utc_datetime(event_doc.starts_on))
+        
+        if event_doc.ends_on:
+            vevent.add('dtend', self._to_utc_datetime(event_doc.ends_on))
+        elif event_doc.starts_on:
+            vevent.add('dtend', self._to_utc_datetime(event_doc.starts_on))
+        
+        # 🔴 FIX: Correct status mapping
+        vevent.add('status',event_doc.caldav_status.capitalize())
+        
+        # 🔴 FIX: Consistent organizer format (lowercase mailto)
+        organizer_email = event_doc.caldav_organizer
+        organizer = vCalAddress(f'mailto:{organizer_email}')
+        organizer.params['cn'] = event_doc.caldav_organizer_name 
+        vevent.add('organizer', organizer)
+        
+        # Add attendees (avoid duplicates)
+        added_emails = set()
+        
+        for participant in event_doc.get('caldav_participants_table', []):
+            if not participant.email or participant.email in added_emails:
+                continue
+            
+            added_emails.add(participant.email)
+            
+            attendee = vCalAddress(f'mailto:{participant.email}')
+            
+            if participant.contact:
+                contact_doc = frappe.get_doc('Contact', participant.contact)
+                attendee.params['cn'] = contact_doc.first_name or participant.email
+            else:
+                attendee.params['cn'] = participant.email
+            
+            attendee.params['role'] = 'REQ-PARTICIPANT'
+            attendee.params['partstat'] = participant.get('invitation_status', 'NEEDS-ACTION')
+            attendee.params['rsvp'] = 'TRUE'
+            attendee.params['cutype'] = 'INDIVIDUAL'
+            
+            vevent.add('attendee', attendee)
+        
+        cal.add_component(vevent)
+        
+        # Convert to iCalendar
+        ical_data = cal.to_ical()
+        # 🔴 CRITICAL FIX: Add If-Match header for conflict detection
+        url = f"{self.base_url}{event_doc.caldav_event_url}"
+        headers = {
+            'Content-Type': 'text/calendar; charset=utf-8',
+            # 'If-Match': event_doc.caldav_etag  # 🔴 THIS IS CRITICAL
+        }
+
+        try:
+            response = requests.put(
+                url,
+                headers=headers,
+                data=ical_data,
+                auth=self.auth,
+                timeout=30
+            )
+        except Exception as e:
+            error_msg = f"CalDAV update request failed: {str(e)}"
+            frappe.log_error(error_msg)
+            frappe.throw(error_msg)
+
+        # 🔴 FIX: Handle 409 Conflict
+        if response.status_code == 409:
+            frappe.throw(
+                "Event was modified in the calendar. "
+                "Click 'Refresh from Calendar' to get the latest version, then try again."
+            )
+
+        # Handle other errors
+        if response.status_code not in [201, 204]:
+            error_msg = f"CalDAV update failed: {response.status_code}\n{response.text}"
+            frappe.log_error(error_msg)
+            frappe.throw(error_msg)
+
+        # Get new ETag
+        new_etag = response.headers.get('ETag', '').strip('"')
+        
+        return {
+            'etag': new_etag,
+            'sequence': sequence,
+            'caldav_card_text': ical_data.decode('utf-8') if isinstance(ical_data, bytes) else ical_data
+        }
+    
+    def validate_dav_url(self, dav_url):
+        """
+        Validate if the provided calendar URL is accessible and belongs to the user
+        """
+        url = f"{self.base_url}{dav_url}"
+        try:
+            response = self._request("PROPFIND", url, depth="0")
+            if response.status_code in [207, 200]:
+                return True
+            else:
+                return False
+        except Exception as e:
+            frappe.log_error(f"DAV URL validation failed: {str(e)}")
+            return False
+
+
+    # ---------------------------
+    # ❌ DELETE EVENT
+    # ---------------------------
+    def delete_event_from_calendar(self, event_doc):
+        """
+        Delete event from Nextcloud Calendar
+        
+        🔴 FIXED: Now includes If-Match header for safety
+        """
+        
+        if not event_doc.caldav_event_url:
+            frappe.throw("CalDAV URL not found")
+        
+        # 🔴 CRITICAL FIX: Add If-Match header for safety
+        url = f"{self.base_url}{event_doc.caldav_event_url}"
+        headers = {
+            # 'If-Match': event_doc.caldav_etag  # 🔴 SAFETY CHECK
+        }
+        
+        try:
+            response = requests.request(
+                'DELETE',
+                url,
+                headers=headers,  # 🔴 THIS IS CRITICAL
+                auth=self.auth,
+                timeout=30
+            )
+        except Exception as e:
+            error_msg = f"CalDAV delete request failed: {str(e)}"
+            frappe.log_error(error_msg)
+            frappe.throw(error_msg)
+        
+        # 🔴 FIX: Handle 409 Conflict
+        if response.status_code == 409:
+            frappe.throw(
+                "Event was modified in the calendar. "
+                "Click 'Refresh from Calendar' to get the latest version, then try again."
+            )
+        
+        # Handle other errors
+        if response.status_code not in [204, 200]:
+            error_msg = f"Failed to delete event from CalDAV: {response.status_code}\n{response.text}"
+            frappe.log_error(error_msg)
+            frappe.throw(error_msg)
+        
+        return True
+    # ---------------------------
+    # 🕒 DATETIME HELPERS
+    # ---------------------------
+    @staticmethod
+    def _to_utc_datetime(value):
+        if not value:
+            return None
+
+        try:
+            system_tz = pytz.timezone(frappe.utils.get_system_timezone())
+
+            # ---------------------------
+            # 🔤 String → datetime
+            # ---------------------------
+            if isinstance(value, str):
+                value = frappe.utils.get_datetime(value)
+
+            # ---------------------------
+            # 📅 Date → datetime
+            # ---------------------------
+            if hasattr(value, 'year') and not hasattr(value, 'hour'):
+                value = datetime.combine(value, datetime.min.time())
+
+            # ---------------------------
+            # ❌ Invalid
+            # ---------------------------
+            if not isinstance(value, datetime):
+                return None
+
+            # ---------------------------
+            # 🌍 Timezone handling
+            # ---------------------------
+            if value.tzinfo:
+                # Already timezone-aware → convert to UTC
+                value = value.astimezone(pytz.UTC)
+            else:
+                # 🔴 CRITICAL FIX:
+                value = system_tz.localize(value).astimezone(pytz.UTC)
+
+            return value
+
+        except Exception as e:
+            frappe.log_error(f"_to_utc_datetime failed: {value} -> {str(e)}")
+            return None
+    # ---------------------------
+    # 📥 FETCH & EXTRACT SEQUENCE
+    # ---------------------------
+    @staticmethod
+    def _extract_sequence_from_ical(ical_text):
+        """
+        Extract SEQUENCE number from iCalendar text
+        """
+        try:
+            cal = Calendar.from_ical(ical_text)
+            for component in cal.walk():
+                if component.name == "VEVENT":
+                    return int(component.get('sequence', 0))
+        except:
+            pass
+        return 0
+
+    @staticmethod
+    def _extract_created_from_ical(ical_text):
+        """
+        Extract CREATED timestamp from iCalendar
+        """
+        try:
+            cal = Calendar.from_ical(ical_text)
+            for component in cal.walk():
+                if component.name == "VEVENT":
+                    created = component.get('created')
+                    if created:
+                        return created.dt if hasattr(created, 'dt') else created
+        except:
+            pass
+        return None
+
+
+def extract_timezone_details(tz_data):
+    if not tz_data:
+        return {}
+
+    try:
+        cal = Calendar.from_ical(tz_data)
+
+        result = {}
+
+        for comp in cal.walk():
+            if comp.name == "VTIMEZONE":
+                result["tzid"] = str(comp.get("TZID"))
+
+            if comp.name in ("STANDARD", "DAYLIGHT"):
+                result["tzname"] = str(comp.get("TZNAME"))
+                result["tzoffsetfrom"] = str(comp.get("TZOFFSETFROM"))
+                result["tzoffsetto"] = str(comp.get("TZOFFSETTO"))
+
+        return result
+
+    except Exception as e:
+        return {"error": str(e)}
+
+def normalize_timezone(tzid):
+    if tzid == "Asia/Calcutta":
+        return "Asia/Kolkata"
+    return tzid
+
+def extract_tzid_fast(tz_data):
+    match = re.search(r"TZID:(.+)", tz_data)
+    return match.group(1).strip() if match else None
+
+class CalDAVEventSyncor:
+    """Handles syncing individual events between systems"""
+
+    @staticmethod
+    def sync_caldav_to_erpnext(caldav_event, dav_account, calendar_url):
+        """Create or update ERPNext Event from CalDAV event"""
+
+        if not caldav_event.get("uid"):
+            return None  # skip invalid events
+
+        # 🔍 Check existing event
+        existing = frappe.db.get_value(
+            "Event",
+            {
+                "caldav_event_id": caldav_event["uid"],
+                "caldav_account": dav_account.name,
+            },
+            ["name", "caldav_etag"],
+            as_dict=True
+        )
+
+        # 🧠 Skip unchanged events (ETag optimization)
+        if existing and existing.caldav_etag == caldav_event.get("etag"):
+            return frappe.get_doc("Event", existing.name)
+
+        # 📄 Create or load
+        if existing:
+            event = frappe.get_doc("Event", existing.name)
+            if not event.sync_with_caldav:
+                return event  # skip if user has disabled sync for this event
+        else:
+            event = frappe.new_doc("Event")
+
+        # ---------------------------
+        # 🧾 FIELD MAPPING
+        # ---------------------------
+        event.subject = caldav_event.get("summary") or "No Title"
+        event.event_public_description = caldav_event.get("description")
+        event.location = caldav_event.get("location")
+        
+        # 🕒 Datetime handling
+        event.starts_on = CalDAVEventSyncor._safe_datetime(caldav_event.get("dtstart"))
+        event.ends_on = CalDAVEventSyncor._safe_datetime(caldav_event.get("dtend"))
+
+        # 🔗 CalDAV metadata
+        event.caldav_event_id = caldav_event["uid"]
+        event.caldav_card_text = caldav_event["text"]
+        event.caldav_account = dav_account.name
+        event.caldav_event_url = caldav_event["caldav_url"]
+        event.caldav_calendar_url = calendar_url
+        event.caldav_etag = caldav_event.get("etag").strip('"')
+        event.caldav_sync_status = "Connected"
+        event.dav_calendar = frappe.db.get_value("DAV Calendar", {"dav_account": dav_account.name, "dav_calendar": calendar_url}, "name")
+        event.caldav_status = caldav_event.get("status").title()
+        #set organizer_email for backward compatibility
+        event.caldav_organizer = caldav_event.get("organizer").replace("mailto:", "")
+        event.caldav_organizer_name = caldav_event.get("organizer_cn") or event.caldav_organizer
+        event.create_in_caldav = 0
+
+        CalDAVEventSyncor.set_selected_calendar_options(dav_account,event,calendar_url)
+
+        # ---------------------------
+        # 👥 PARTICIPANTS (DIFF SAFE)
+        # ---------------------------
+        CalDAVEventSyncor._sync_participants(event, caldav_event.get("attendees", []))
+
+        # 💾 Save
+        event.save(ignore_permissions=True)
+        return event
+    
+    @staticmethod
+    def set_selected_calendar_options(dav_account,event_doc,calendar_url):
+        meta = frappe.get_meta("Event")
+        field = meta.get_field("selected_calendar")
+        options = []
+        selected_calendar = None
+        color = None
+        for cal in dav_account.available_calendars:
+            options.append(cal.display_name)
+            if cal.calendar_url == calendar_url:
+                selected_calendar = cal.display_name
+                color = cal.calendar_color
+        frappe.db.set_value(
+            "DocField",
+            field.name,
+            "options",
+            "\n".join(options)
+        )
+        event_doc.selected_calendar = selected_calendar
+        event_doc.dav_calendar = frappe.db.get_value("DAV Calendar", {"dav_account": dav_account.name, "dav_calendar": selected_calendar}, "name")
+        event_doc.color = color
+    # ---------------------------
+    # 👥 PARTICIPANT SYNC
+    # ---------------------------
+    @staticmethod
+    def _sync_participants(event, attendees):
+        existing_emails = {row.email: row for row in event.get("caldav_participants_table", [])}
+
+        new_table = []
+
+        for attendee in attendees:
+            email = attendee.get("email")
+            if not email:
+                continue
+
+            contact = frappe.db.get_value("Contact", {"email_id": email}) or frappe.db.get_value("Contact Email", {"email_id": email}, "parent")
+
+            row = existing_emails.get(email)
+
+            new_table.append({
+                "email": email,
+                "contact": contact,
+                "invitation_status": attendee.get("partstat", "NEEDS-ACTION"),
+            })
+
+        event.set("caldav_participants_table", new_table)
+
+    # ---------------------------
+    # 🕒 SAFE DATETIME HANDLER
+    # ---------------------------
+
+    @staticmethod
+    def _safe_datetime(value):
+        if not value:
+            return None
+
+        system_tz = pytz.timezone(frappe.utils.get_system_timezone())
+
+        # ---------------------------
+        # 📅 If already datetime/date
+        # ---------------------------
+        if hasattr(value, "isoformat"):
+
+            # date → datetime
+            if not hasattr(value, "hour"):
+                value = datetime.combine(value, datetime.min.time())
+
+            # If timezone-aware → convert to system tz
+            if value.tzinfo is not None:
+                value = value.astimezone(system_tz)
+            else:
+                # assume UTC if naive (CalDAV usually sends UTC or TZ-aware)
+                value = pytz.UTC.localize(value).astimezone(system_tz)
+
+            return value.replace(tzinfo=None)
+
+        # ---------------------------
+        # 🔤 If string
+        # ---------------------------
+        try:
+            dt = frappe.utils.get_datetime(value)
+
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(system_tz)
+            else:
+                dt = pytz.UTC.localize(dt).astimezone(system_tz)
+
+            return dt.replace(tzinfo=None)
+
+        except Exception:
+            frappe.log_error(f"Invalid datetime value: {value}")
+            return None
+
+    # ---------------------------
+    # ❌ HANDLE DELETION
+    # ---------------------------
+    @staticmethod
+    def handle_caldav_deletion(caldav_event_id, dav_account_name):
+        events = frappe.db.get_list(
+            "Event",
+            filters={
+                "caldav_event_id": caldav_event_id,
+                "caldav_account": dav_account_name,
+            },
+            fields=["name", "owner", "subject"],
+        )
+
+        for event_record in events:
+            event = frappe.get_doc("Event", event_record["name"])
+
+            # Avoid re-processing
+            if event.caldav_sync_status == "Deleted in Provider":
+                continue
+
+            event.caldav_sync_status = "Deleted in Provider"
+            event.caldav_etag = None
+            event.caldav_event_url = None
+            event.caldav_status = ""
+            event.save(ignore_permissions=True)
+
+            # 📌 ToDo notification
+            frappe.get_doc({
+                "doctype": "ToDo",
+                "owner": event_record["owner"],
+                "reference_type": "Event",
+                "reference_name": event_record["name"],
+                "title": f"Event '{event_record['subject']}' was deleted from calendar",
+                "description": "This event was removed from your CalDAV provider.",
+                "priority": "High"
+            }).insert(ignore_permissions=True)
+
+            # 🔔 Realtime push
+            frappe.publish_realtime(
+                "event_caldav_deleted",
+                {
+                    "event": event_record["name"],
+                    "message": f"Event '{event_record['subject']}' was deleted from your calendar"
+                },
+                user=event_record["owner"]
+            )
