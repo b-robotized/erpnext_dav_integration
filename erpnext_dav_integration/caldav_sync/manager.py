@@ -344,7 +344,6 @@ class WebDAVManager:
                     )
                 except Exception as e:
                     frappe.log_error(f"Sync failed for {event.get('uid')}: {str(e)}")
-                time.sleep(0.1)
 
             # ✅ STEP 2: Detect deletions
             # self._mark_deleted_events(current_uids, cal["url"])
@@ -644,6 +643,21 @@ class WebDAVManager:
             'sequence': sequence,
             'caldav_card_text': ical_data.decode('utf-8') if isinstance(ical_data, bytes) else ical_data
         }
+    
+    def validate_dav_url(self, dav_url):
+        """
+        Validate if the provided calendar URL is accessible and belongs to the user
+        """
+        url = f"{self.base_url}{dav_url}"
+        try:
+            response = self._request("PROPFIND", url, depth="0")
+            if response.status_code in [207, 200]:
+                return True
+            else:
+                return False
+        except Exception as e:
+            frappe.log_error(f"DAV URL validation failed: {str(e)}")
+            return False
 
 
     # ---------------------------
@@ -859,7 +873,7 @@ class CalDAVEventSyncor:
         #set organizer_email for backward compatibility
         event.caldav_organizer = caldav_event.get("organizer").replace("mailto:", "")
         event.caldav_organizer_name = caldav_event.get("organizer_cn") or event.caldav_organizer
-        
+        event.create_in_caldav = 0
 
         CalDAVEventSyncor.set_selected_calendar_options(dav_account,event,calendar_url)
 

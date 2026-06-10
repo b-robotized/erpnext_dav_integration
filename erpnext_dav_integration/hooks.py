@@ -24,7 +24,6 @@ scheduler_events = {
       ],
 		"0 15 * * *": [
 			"erpnext_dav_integration.scheduler.contact.schedule_synchronization",
-			"erpnext_dav_integration.scheduler.contact.deletion_of_trashed_contacts",
 		],
 	}
 }

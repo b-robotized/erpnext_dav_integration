@@ -54,7 +54,7 @@
    "label": "Connection"
   },
   {
-   "description": "e.g. https://cloud.example.com",
+   "description": "e.g. https://cloud.example.com/  ",
    "fieldname": "base_url",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -205,13 +205,14 @@
    "default": "0",
    "fieldname": "default",
    "fieldtype": "Check",
-   "label": "Default"
+   "label": "Default",
+   "set_only_once": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-08 15:16:33.643110",
+ "modified": "2026-06-10 12:09:03.498657",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV Account",

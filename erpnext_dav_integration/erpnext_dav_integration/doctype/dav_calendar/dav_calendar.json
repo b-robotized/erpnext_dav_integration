@@ -16,6 +16,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "DAV Account",
+   "link_filters": "[[\"DAV Account\",\"default\",\"=\",1]]",
    "options": "DAV Account",
    "reqd": 1
   },
@@ -34,7 +35,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-11 10:25:24.622844",
+ "modified": "2026-06-10 13:25:06.501574",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV Calendar",
