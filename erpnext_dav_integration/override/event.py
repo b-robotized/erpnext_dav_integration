@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from erpnext_dav_integration.caldav_sync.manager import WebDAVManager
+from erpnext_dav_integration.webdav_sync.manager import WebDAVManager
 from frappe.desk.doctype.event.event import Event
 import json
 

@@ -26,7 +26,7 @@ class DAVAccount(Document):
     @frappe.whitelist()
     def discover_calendars(self):
         """Refresh calendar list from CalDAV provider"""
-        from erpnext_dav_integration.caldav_sync.manager import WebDAVManager
+        from erpnext_dav_integration.webdav_sync.manager import WebDAVManager
         manager = WebDAVManager(self.name)
         try:
             # Discover calendar home
@@ -35,23 +35,42 @@ class DAVAccount(Document):
                 self.default_calendar_url = calendar_home
             # Discover calendars
             calendars = manager.discover_calendars()
-            # Update available calendars
-            self.available_calendars = []
+            # Sync available calendars without dropping existing rows entirely
+            existing_calendars = {row.calendar_url.rstrip("/"): row for row in self.available_calendars}
+            active_calendar_urls = set()
+
             for cal in calendars:
-                self.append('available_calendars', {
-	                'calendar_url': cal['url'],
-	                'display_name': cal['name'],
-					'calendar_color': cal.get('color', '#000000'),
-	                'sync_enabled': 1,
-					'timezone': cal.get('timezone')
-				})
+                calendar_url = cal['url']
+                normalized_url = calendar_url.rstrip("/")
+                active_calendar_urls.add(normalized_url)
+
+                if normalized_url in existing_calendars:
+                    row = existing_calendars[normalized_url]
+                    row.calendar_url = calendar_url
+                    row.display_name = cal['name']
+                    row.calendar_color = cal.get('color', '#000000')
+                    row.timezone = cal.get('timezone')
+                else:
+                    self.append('available_calendars', {
+                        'calendar_url': calendar_url,
+                        'display_name': cal['name'],
+                        'calendar_color': cal.get('color', '#000000'),
+                        'enable_sync': 1,
+                        'timezone': cal.get('timezone')
+                    })
+
+            # Remove calendars that no longer exist on the provider
+            self.available_calendars = [
+                row for row in self.available_calendars
+                if row.calendar_url and row.calendar_url.rstrip("/") in active_calendar_urls
+            ]
             self.save(ignore_permissions=True)
-            
+
         except Exception as e:
             frappe.msgprint(
-	            _("Error discovering calendars: {0}").format(str(e)),
-	            alert=True,
-	            indicator='red'
+                _("Error discovering calendars: {0}").format(str(e)),
+                alert=True,
+                indicator='red'
             )
     def fetch_and_store_address_books(self):
         base_url = self.base_url.rstrip("/")

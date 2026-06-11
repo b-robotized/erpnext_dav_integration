@@ -3,10 +3,11 @@
 
 frappe.ui.form.on("DAV Account", {
 	refresh(frm) {
-		frm.add_custom_button("Create Address Book", () => {
-			frappe.prompt(
-				[
-					{
+		if (frm.doc.owner !== frappe.session.user) return;
+			frm.add_custom_button("Create Address Book", () => {
+				frappe.prompt(
+					[
+						{
 						label: "Address Book Name",
 						fieldname: "address_book_name",
 						fieldtype: "Data",

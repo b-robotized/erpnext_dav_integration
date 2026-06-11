@@ -5,9 +5,15 @@ app_description = "This is for Dav Integration"
 app_email = "arun.govind@cloudconverge.io"
 app_license = "agpl-3.0"
 
+app_include_js = ["/assets/erpnext_dav_integration/js/webdav_file_browser23.js"]
+
 doctype_js = {
     "Contact": "public/js/contact.js",
-    "Event": "public/js/caldav_event.js"
+    "Event": "public/js/caldav_event.js",
+    "Communication": "public/js/communication.js",
+    "Project": "public/js/project.js",
+    "Employee": "public/js/employee.js",
+    "Contract": "public/js/contract.js"
 }
 
 doc_events = {
@@ -25,7 +31,10 @@ scheduler_events = {
 		"0 15 * * *": [
 			"erpnext_dav_integration.scheduler.contact.schedule_synchronization",
 		],
-	}
+	},
+ 	"hourly": [
+        "erpnext_dav_integration.webdav_sync.scheduler.scheduled_file_sync",
+    ]
 }
 
 doctype_list_js = {

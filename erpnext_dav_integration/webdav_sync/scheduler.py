@@ -1,7 +1,7 @@
 # scheduler.py
 
 import frappe
-from caldav_sync.manager import WebDAVManager
+from .manager import WebDAVManager, WebDAVSyncor
 
 def sync_all_caldav_events():
     """Scheduled job to sync all CalDAV events"""
@@ -35,8 +35,29 @@ def sync_user_caldav_events(dav_account_name):
         if calendar.sync_enabled:
             events = manager.fetch_events_from_calendar(calendar.calendar_url)
             for event_data in events:
-                CalDAVEventSyncor.sync_caldav_to_erpnext(
+                WebDAVSyncor.sync_caldav_to_erpnext(
                     event_data,
                     dav_account,
                     calendar.calendar_url
                 )
+
+
+def scheduled_file_sync():
+    """
+    Scheduled job: sync all project invoice / contract folders.
+    Add to hooks.py:
+        scheduler_events = {
+            "hourly": ["your_app.webdav_manager.scheduled_file_sync"]
+        }
+    """
+    accounts = frappe.get_all(
+        "DAV Account",
+        filters={"webdav_sync_enabled": 1},
+        pluck="name",
+    )
+    for account_name in accounts:
+        try:
+            syncor = WebDAVSyncor(account_name)
+            syncor.sync_all_project_folders()
+        except Exception as exc:
+            frappe.log_error(f"scheduled_file_sync – account {account_name}: {exc}")

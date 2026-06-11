@@ -3,7 +3,8 @@ import frappe
 from frappe import _
 from datetime import datetime, timedelta
 import pytz
-from erpnext_dav_integration.caldav_sync.manager import WebDAVManager , CalDAVEventSyncor
+from erpnext_dav_integration.webdav_sync.manager import WebDAVManager , WebDAVSyncor
+import re
 
 # ---------------------------
 # 🔄 HOURLY SYNC
@@ -153,7 +154,7 @@ def sync_single_calendar(dav_account, calendar):
         # Sync each event
         for event_data in events:
             try:
-                event = CalDAVEventSyncor.sync_caldav_to_erpnext(
+                event = WebDAVSyncor.sync_caldav_to_erpnext(
                     event_data,
                     dav_account,
                     calendar_url

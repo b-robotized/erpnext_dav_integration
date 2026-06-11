@@ -7,7 +7,6 @@
  "engine": "InnoDB",
  "field_order": [
   "enabled",
-  "default",
   "user",
   "section_auth",
   "base_url",
@@ -17,6 +16,7 @@
   "column1",
   "verify_tls",
   "request_timeout_s",
+  "default_share_link_expire_in",
   "section_endpoints",
   "webdav_root_url",
   "cardav_configurations_section",
@@ -108,21 +108,24 @@
    "description": "e.g. /remote.php/dav/files",
    "fieldname": "webdav_root_url",
    "fieldtype": "Data",
-   "label": "WebDAV Root Path"
+   "label": "WebDAV Root Path",
+   "permlevel": 1
   },
   {
    "default": "/remote.php/dav/principals",
    "description": "e.g./remote.php/dav/principals",
    "fieldname": "default_calendar_url",
    "fieldtype": "Data",
-   "label": "CalDAV Calendar Home"
+   "label": "CalDAV Calendar Home",
+   "permlevel": 1
   },
   {
    "default": "/remote.php/dav/addressbooks",
    "description": "e.g./remote.php/dav/addressbooks",
    "fieldname": "default_addressbook_url",
    "fieldtype": "Data",
-   "label": "CardDAV AddressBook Home"
+   "label": "CardDAV AddressBook Home",
+   "permlevel": 1
   },
   {
    "collapsible": 1,
@@ -134,7 +137,8 @@
   {
    "fieldname": "dav_address_books",
    "fieldtype": "Table",
-   "options": "DAV Address Book"
+   "options": "DAV Address Book",
+   "permlevel": 1
   },
   {
    "collapsible": 1,
@@ -146,14 +150,16 @@
    "fieldname": "available_calendars",
    "fieldtype": "Table",
    "label": "Available Calendars",
-   "options": "DAV Account Calendar"
+   "options": "DAV Account Calendar",
+   "permlevel": 1
   },
   {
    "button_color": "Primary",
    "depends_on": "eval: doc.username",
    "fieldname": "discover_calendars_btn",
    "fieldtype": "Button",
-   "label": "Discover Calendars"
+   "label": "Discover Calendars",
+   "permlevel": 1
   },
   {
    "fieldname": "column_break_plxz",
@@ -164,13 +170,15 @@
    "fieldname": "auto_delete_caldav_events",
    "fieldtype": "Check",
    "hidden": 1,
-   "label": "Auto Delete CalDav Events"
+   "label": "Auto Delete CalDav Events",
+   "permlevel": 1
   },
   {
    "default": "0",
    "fieldname": "auto_sync_events",
    "fieldtype": "Check",
-   "label": "Auto Sync Events"
+   "label": "Auto Sync Events",
+   "permlevel": 1
   },
   {
    "collapsible": 1,
@@ -193,13 +201,15 @@
    "fieldname": "auto_delete_carddav_contacts",
    "fieldtype": "Check",
    "hidden": 1,
-   "label": "Auto Delete CardDAV Contacts"
+   "label": "Auto Delete CardDAV Contacts",
+   "permlevel": 1
   },
   {
    "default": "0",
    "fieldname": "auto_sync_contacts",
    "fieldtype": "Check",
-   "label": "Auto Sync Contacts"
+   "label": "Auto Sync Contacts",
+   "permlevel": 1
   },
   {
    "default": "0",
@@ -220,8 +230,20 @@
  "owner": "Administrator",
  "permissions": [
   {
-   "create": 1,
    "delete": 1,
+   "email": 1,
+   "export": 1,
+   "permlevel": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -232,13 +254,15 @@
    "write": 1
   },
   {
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "report": 1,
+   "if_owner": 1,
    "role": "All",
-   "select": 1,
-   "share": 1
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "All",
+   "select": 1
   }
  ],
  "row_format": "Dynamic",

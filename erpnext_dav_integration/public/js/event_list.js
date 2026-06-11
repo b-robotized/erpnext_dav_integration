@@ -14,7 +14,7 @@ frappe.listview_settings["Event"] = {
         
         
             frappe.call({
-                method: 'erpnext_dav_integration.caldav_sync.api.sync_with_dav_calendar',
+                method: 'erpnext_dav_integration.webdav_sync.api.sync_with_dav_calendar',
                 args: {
                     event_names: event_names
                 },
@@ -46,7 +46,7 @@ frappe.listview_settings["Event"] = {
         listview.page.add_menu_item(__('Fetch Events from DAV Calendar'), function() {
             // Call the server-side method to fetch events from DAV Calendar
             frappe.call({
-            method: 'erpnext_dav_integration.caldav_sync.api.enqueue_fetch_events_from_dav_calendar',
+            method: 'erpnext_dav_integration.webdav_sync.api.enqueue_fetch_events_from_dav_calendar',
             freeze: true,
             freeze_message: __('Fetching events from DAV Calendar...'),
             callback: function(response) {

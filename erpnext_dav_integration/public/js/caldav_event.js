@@ -3,6 +3,7 @@
 frappe.ui.form.on('Event', {
     refresh: function(frm) {
         load_calendars(frm);
+        
         // Add a custom button to "Refresh from Calendar"
         frm.add_custom_button(__('Refresh from Calendar'), function() {
             if (!frm.doc.caldav_event_id) {
@@ -10,7 +11,7 @@ frappe.ui.form.on('Event', {
                 return;
             }
             frappe.call({
-                method: 'erpnext_dav_integration.caldav_sync.api.refresh_from_caldav',
+                method: 'erpnext_dav_integration.webdav_sync.api.refresh_from_caldav',
                 args: {
                     event_name: frm.doc.name
                 },
@@ -27,7 +28,7 @@ frappe.ui.form.on('Event', {
                 return;
             }
             frappe.call({
-                method: 'erpnext_dav_integration.caldav_sync.api.create_caldav_event',
+                method: 'erpnext_dav_integration.webdav_sync.api.create_caldav_event',
                 args: {
                     event_name: frm.doc.name,
                     calendar_name: frm.doc.selected_calendar
@@ -58,7 +59,7 @@ frappe.ui.form.on('Event', {
         //         __('Are you sure you want to delete the linked CalDAV event? This action cannot be undone.'),
         //         function() {
         //             frappe.call({
-        //                 method: 'erpnext_dav_integration.caldav_sync.api.delete_caldav_event',
+        //                 method: 'erpnext_dav_integration.webdav_sync.api.delete_caldav_event',
         //                 args: {
         //                     event_name: frm.doc.name
         //                 },
@@ -89,7 +90,7 @@ frappe.ui.form.on('Event', {
                 __('Are you sure you want to unlink this event from the CalDAV event? This will not delete the CalDAV event.'),
                 function() {
                     frappe.call({
-                        method: 'erpnext_dav_integration.caldav_sync.api.unlink_from_caldav',
+                        method: 'erpnext_dav_integration.webdav_sync.api.unlink_from_caldav',
                         args: {
                             event_name: frm.doc.name
                         },
@@ -156,7 +157,7 @@ frappe.ui.form.on('Event', {
         // When a calendar is selected, store the calendar URL in a hidden field
         if (frm.doc.selected_calendar && frm.doc.caldav_account) {
             frappe.call({
-                method: 'erpnext_dav_integration.caldav_sync.api.get_calendar_url',
+                method: 'erpnext_dav_integration.webdav_sync.api.get_calendar_url',
                 args: {
                     dav_account: frm.doc.caldav_account,
                     calendar_name: frm.doc.selected_calendar
@@ -223,7 +224,7 @@ function load_calendars(frm) {
     if (!frm.doc.caldav_account) return;
 
     frappe.call({
-        method: 'erpnext_dav_integration.caldav_sync.api.get_calendars',
+        method: 'erpnext_dav_integration.webdav_sync.api.get_calendars',
         args: {
             dav_account: frm.doc.caldav_account
         },

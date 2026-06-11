@@ -13,7 +13,7 @@ function load_calendars(frm) {
     if (!frm.doc.dav_account) return;
 
     frappe.call({
-        method: 'erpnext_dav_integration.caldav_sync.api.get_calendars',
+        method: 'erpnext_dav_integration.webdav_sync.api.get_calendars',
         args: {
             dav_account: frm.doc.dav_account
         },

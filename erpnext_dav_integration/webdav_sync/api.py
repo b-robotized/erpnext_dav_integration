@@ -3,7 +3,7 @@
 import frappe
 from frappe import _
 import json, time
-from .manager import WebDAVManager, CalDAVEventSyncor
+from .manager import WebDAVManager, WebDAVSyncor
 
 def check_rate_limit(key, limit=20, seconds=60):
     cache = frappe.cache()
@@ -342,7 +342,7 @@ def refresh_from_caldav(event_name):
         caldav_event = manager.fetch_single_event(event_url)
         if not caldav_event:
             frappe.throw(_("Event not found in calendar"))
-        caldaveventsycor =CalDAVEventSyncor()
+        caldaveventsycor =WebDAVSyncor()
         # Update fields (but keep private description)
         event.subject = caldav_event.get('summary')
         event.event_public_description = caldav_event.get('description')
