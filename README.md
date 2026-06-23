@@ -138,7 +138,10 @@ bench --site your-site.com clear-cache
 
 #### Step 3: Discover Address Books
 1. Click **Update Address Book List**
-2. Select default address book
+2. Create a `DAV Addressbook` document for each discovered address book under the default DAV Account.
+3. Set the default DAV Addressbook in a `User Permission` record for each user who needs access.
+
+> Note: It is recommended to create all `DAV Addressbook` docs for each address book under the default DAV Account.
 
 ### Creating a DAV Calendar
 
@@ -148,7 +151,10 @@ bench --site your-site.com clear-cache
 
 #### Step 2: Discover Calendars
 1. Click **Update Calendar List**
-2. Select default calendar
+2. Create a `DAV Calendar` document for each calendar in the list under the default DAV Account.
+3. Set the default DAV Calendar in a `User Permission` record for each user who needs access.
+
+> Note: It is recommended to create all `DAV Calendar` docs for each calendar list under the default DAV Account.
 
 ### Contact Mapping
 
