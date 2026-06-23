@@ -136,6 +136,8 @@ bench --site your-site.com clear-cache
 | App Password | Secure password | •••••••• |
 | Default Address Book URL | Base CardDAV path | /remote.php/dav/addressbooks |
 
+> Note: CardDAV and CalDAV synchronization only use the default enabled DAV Account. Other DAV accounts are ignored for contact/calendar sync.
+
 #### Step 3: Discover Address Books
 1. Click **Update Address Book List**
 2. Create a `DAV Addressbook` document for each discovered address book under the default DAV Account.
