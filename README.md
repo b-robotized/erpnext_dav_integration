@@ -268,6 +268,55 @@ bench --site your-site.com clear-cache
 
 ---
 
+## Nextcloud Files (Cloud storage)
+
+This app includes an integrated Nextcloud/ WebDAV file browser that lets users:
+- Attach cloud files directly to emails and other documents.
+- Insert public share links (Nextcloud public shares) into email bodies.
+- Select and store Nextcloud folders on `Project` and `Employee` records.
+
+How it works
+- The File Browser button appears in the Email composer as **Cloud Storage**.
+- When opened it lists your Nextcloud files and folders (via WebDAV PROPFIND).
+- Users can select files to attach (the app downloads the file and creates an ERPNext `File` record), or create a public share link and insert it into the email body.
+- Project and Employee forms have buttons to "Select Nextcloud Folder" and "Open Nextcloud Folder" to link folders to those records.
+
+Setup / Requirements
+1. Create a `DAV Account` record in ERPNext for your Nextcloud account:
+   - `Account Name`: descriptive name (e.g. Nextcloud - alice)
+   - `Base URL`: https://your-nextcloud.example.com
+   - `Username`: your Nextcloud username (must match your ERPNext user to use the Cloud Storage button)
+   - `Password` / `App Password`: app password recommended for security
+   - Enable the account and save.
+
+2. Link the `DAV Account` to the ERPNext user by creating a `DAV Account` where the `username` field matches the Frappe user (the API resolves the account for the current user).
+
+3. Ensure the Nextcloud user has permission to create public shares if you want "Insert share link" to work.
+
+
+User flow examples
+- Attaching a cloud file to an email:
+  1. Open the email composer and click **Cloud Storage**.
+  2. Browse to a folder and select one or more files.
+  3. Click **Attach file** to copy the file into ERPNext attachments.
+
+- Inserting a Nextcloud share link:
+  1. Select one or more files in the Cloud Storage browser.
+  2. Click **Insert share link** and optionally set an expiry date.
+  3. The link is inserted into the email body (or composer field).
+
+- Linking a Nextcloud folder to an Employee or Project:
+  1. Open the `Employee` or `Project` record.
+  2. Click **Select Nextcloud Folder** (or Select Employee Private Folder / Select Company Shared Folder).
+  3. Choose a folder and the record will store a Files-app URL and DAV path.
+
+Security & permissions
+- The integration resolves the DAV account from the ERPNext user; ensure `DAV Account.username` matches the Frappe user.
+- Attachments downloaded from Nextcloud are stored per ERPNext's File permissions (private/public as configured).
+- Share links are created using Nextcloud's OCS share API and inherit Nextcloud's sharing permissions.
+
+---
+
 ## 7. Limitations
 
 ### 7.1 No Strict Deduplication

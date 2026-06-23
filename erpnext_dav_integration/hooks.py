@@ -5,7 +5,7 @@ app_description = "This is for Dav Integration"
 app_email = "arun.govind@cloudconverge.io"
 app_license = "agpl-3.0"
 
-app_include_js = ["/assets/erpnext_dav_integration/js/webdav_file_browser23.js"]
+app_include_js = ["/assets/erpnext_dav_integration/js/webdav_file_browser.js"]
 
 doctype_js = {
     "Contact": "public/js/contact.js",

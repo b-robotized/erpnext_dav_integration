@@ -528,12 +528,8 @@ class WebDAVManager:
     def fetch_single_event(self, event_url):
         url = f"{self.base_url}{event_url}"
 
-        
-
         response = self._request("GET", url, depth="1")
         cal = response.text
-
-        
         event_data = self._parse_ical_event(Calendar.from_ical(cal))
         
         if event_data:
