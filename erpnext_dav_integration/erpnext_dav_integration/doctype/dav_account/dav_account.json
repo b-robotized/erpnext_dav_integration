@@ -6,6 +6,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "default",
   "enabled",
   "user",
   "section_auth",
