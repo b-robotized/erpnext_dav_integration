@@ -21,6 +21,7 @@ doc_events = {
 		"before_save": "erpnext_dav_integration.override.contact.sync_contact_to_carddav",
 		"validate": "erpnext_dav_integration.override.contact.validate_contact",
 	}
+    
 }
 scheduler_events = {
 	"cron": {
