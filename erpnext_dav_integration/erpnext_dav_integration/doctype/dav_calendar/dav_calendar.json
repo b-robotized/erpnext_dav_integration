@@ -36,15 +36,15 @@
    "depends_on": "eval:doc.dav_account",
    "fieldname": "dav_calendar_url",
    "fieldtype": "Data",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "DAV Calendar Url"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-02 16:25:03.607153",
- "modified_by": "arun.govind@cloudconverge.io",
+ "modified": "2026-07-06 16:40:22.661856",
+ "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV Calendar",
  "naming_rule": "Set by user",

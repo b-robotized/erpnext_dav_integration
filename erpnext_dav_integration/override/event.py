@@ -38,7 +38,6 @@ class CustomEvent(Event):
 		):
 			return
 
-
 		# Check if fields changed
 		changed_fields = self._get_changed_caldav_fields()
 
