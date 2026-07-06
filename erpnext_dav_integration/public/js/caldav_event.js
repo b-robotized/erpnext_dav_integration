@@ -24,37 +24,37 @@ frappe.ui.form.on("Event", {
 			},
 			__("CalDAV")
 		);
-		frm.add_custom_button(
-			__("Create CalDAV Event"),
-			function () {
-				if (frm.doc.caldav_event_id) {
-					frappe.msgprint(__("This event is already connected to a CalDAV event."));
-					return;
-				}
-				frappe.call({
-					method: "erpnext_dav_integration.webdav_sync.api.create_caldav_event",
-					args: {
-						event_name: frm.doc.name,
-						calendar_name: frm.doc.selected_calendar,
-					},
-					freeze: true,
-					freeze_message: __("Creating CalDAV event..."),
-					callback: function (response) {
-						if (response.exc) {
-							console.error("Creation failed:", response.exc);
-							frappe.msgprint(__("Failed to create CalDAV event."));
-							return;
-						}
-						if (response.message) {
-							frm.reload_doc();
-						} else {
-							frappe.msgprint(__("No response from server."));
-						}
-					},
-				});
-			},
-			__("CalDAV")
-		);
+		// frm.add_custom_button(
+		// 	__("Create CalDAV Event"),
+		// 	function () {
+		// 		if (frm.doc.caldav_event_id) {
+		// 			frappe.msgprint(__("This event is already connected to a CalDAV event."));
+		// 			return;
+		// 		}
+		// 		frappe.call({
+		// 			method: "erpnext_dav_integration.webdav_sync.api.create_caldav_event",
+		// 			args: {
+		// 				event_name: frm.doc.name,
+		// 				calendar_name: frm.doc.selected_calendar,
+		// 			},
+		// 			freeze: true,
+		// 			freeze_message: __("Creating CalDAV event..."),
+		// 			callback: function (response) {
+		// 				if (response.exc) {
+		// 					console.error("Creation failed:", response.exc);
+		// 					frappe.msgprint(__("Failed to create CalDAV event."));
+		// 					return;
+		// 				}
+		// 				if (response.message) {
+		// 					frm.reload_doc();
+		// 				} else {
+		// 					frappe.msgprint(__("No response from server."));
+		// 				}
+		// 			},
+		// 		});
+		// 	},
+		// 	__("CalDAV")
+		// );
 		// frm.add_custom_button(__('Delete CalDAV Event'), function() {
 		//     if (!frm.doc.caldav_event_id) {
 		//         frappe.msgprint(__('This event is not connected to a CalDAV event.'));
@@ -86,43 +86,43 @@ frappe.ui.form.on("Event", {
 		//         }
 		//     );
 		// },__("CalDAV"));
-		frm.add_custom_button(
-			__("Unlink from CalDAV"),
-			function () {
-				if (!frm.doc.caldav_event_id) {
-					frappe.msgprint(__("This event is not connected to a CalDAV event."));
-					return;
-				}
-				frappe.confirm(
-					__(
-						"Are you sure you want to unlink this event from the CalDAV event? This will not delete the CalDAV event."
-					),
-					function () {
-						frappe.call({
-							method: "erpnext_dav_integration.webdav_sync.api.unlink_from_caldav",
-							args: {
-								event_name: frm.doc.name,
-							},
-							freeze: true,
-							freeze_message: __("Unlinking from CalDAV..."),
-							callback: function (response) {
-								if (response.exc) {
-									console.error("Unlinking failed:", response.exc);
-									frappe.msgprint(__("Failed to unlink from CalDAV."));
-									return;
-								}
-								if (response.message) {
-									frm.reload_doc();
-								} else {
-									frappe.msgprint(__("No response from server."));
-								}
-							},
-						});
-					}
-				);
-			},
-			__("CalDAV")
-		);
+		// frm.add_custom_button(
+		// 	__("Unlink from CalDAV"),
+		// 	function () {
+		// 		if (!frm.doc.caldav_event_id) {
+		// 			frappe.msgprint(__("This event is not connected to a CalDAV event."));
+		// 			return;
+		// 		}
+		// 		frappe.confirm(
+		// 			__(
+		// 				"Are you sure you want to unlink this event from the CalDAV event? This will not delete the CalDAV event."
+		// 			),
+		// 			function () {
+		// 				frappe.call({
+		// 					method: "erpnext_dav_integration.webdav_sync.api.unlink_from_caldav",
+		// 					args: {
+		// 						event_name: frm.doc.name,
+		// 					},
+		// 					freeze: true,
+		// 					freeze_message: __("Unlinking from CalDAV..."),
+		// 					callback: function (response) {
+		// 						if (response.exc) {
+		// 							console.error("Unlinking failed:", response.exc);
+		// 							frappe.msgprint(__("Failed to unlink from CalDAV."));
+		// 							return;
+		// 						}
+		// 						if (response.message) {
+		// 							frm.reload_doc();
+		// 						} else {
+		// 							frappe.msgprint(__("No response from server."));
+		// 						}
+		// 					},
+		// 				});
+		// 			}
+		// 		);
+		// 	},
+		// 	__("CalDAV")
+		// );
 	},
 	all_day: function (frm) {
 		if (frm.doc.all_day && frm.doc.starts_on) {

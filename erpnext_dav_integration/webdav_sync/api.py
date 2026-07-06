@@ -335,7 +335,7 @@ def refresh_from_caldav(event_name):
 		caldav_event = manager.fetch_single_event(event_url)
 		if not caldav_event:
 			frappe.throw(_("Event not found in calendar"))
-		caldaveventsycor = WebDAVSyncor()
+		caldaveventsycor = WebDAVSyncor(event.caldav_account)
 		# Update fields (but keep private description)
 		event.subject = caldav_event.get("summary")
 		event.event_public_description = caldav_event.get("description")
