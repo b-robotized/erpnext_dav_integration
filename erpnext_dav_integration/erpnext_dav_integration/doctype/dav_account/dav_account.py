@@ -27,7 +27,7 @@ class DAVAccount(Document):
 			frappe.msgprint(f"Failed to fetch address books: {e}")
 
 	@frappe.whitelist()
-	def discover_calendars(self):
+	def discover_calendars(self, skip_filtering=False):
 		"""Refresh calendar list from CalDAV provider"""
 		from erpnext_dav_integration.webdav_sync.manager import WebDAVManager
 
@@ -38,7 +38,7 @@ class DAVAccount(Document):
 				calendar_home = manager.get_calendar_home_set()
 				self.default_calendar_url = calendar_home
 			# Discover calendars
-			calendars = manager.discover_calendars()
+			calendars = manager.discover_calendars(skip_filtering=skip_filtering)
 			# Sync available calendars without dropping existing rows entirely
 			existing_calendars = {row.calendar_url.rstrip("/"): row for row in self.available_calendars}
 			active_calendar_urls = set()
