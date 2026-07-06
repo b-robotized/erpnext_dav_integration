@@ -123,6 +123,9 @@ frappe.ui.form.on("Event", {
 		// 	},
 		// 	__("CalDAV")
 		// );
+		setTimeout(() => {
+			$('[data-label="Add%20Participants"]').remove();
+        }, 100);
 	},
 	all_day: function (frm) {
 		if (frm.doc.all_day && frm.doc.starts_on) {
