@@ -127,13 +127,6 @@ def sync_with_dav_calendar(event_names):
 		if not doc.caldav_event_id or not doc.caldav_account:
 			return
 
-		auto_sync = frappe.db.get_value("DAV Account", doc.caldav_account, "auto_sync_events")
-		if not auto_sync:
-			# Mark as out-of-sync instead
-			doc.caldav_sync_status = "OutOfSync"
-			doc.save(ignore_permissions=True)
-			return
-
 		try:
 			# Sync to CalDAV
 			manager = WebDAVManager(doc.caldav_account)
@@ -145,6 +138,7 @@ def sync_with_dav_calendar(event_names):
 			doc.caldav_sync_status = "Connected"
 			doc.caldav_card_text = result.get("caldav_card_text")
 			doc.save(ignore_permissions=True)
+			return doc.name
 		except Exception as e:
 			doc.caldav_sync_status = "OutOfSync"
 			frappe.msgprint(

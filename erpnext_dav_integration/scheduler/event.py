@@ -22,7 +22,7 @@ def sync_all_caldav_events():
 		# Get all enabled DAV accounts
 		accounts = frappe.db.get_list(
 			"DAV Account",
-			filters={"enabled": 1, "auto_sync_events": 1},
+			filters={"enabled": 1},
 			fields=["name", "username", "base_url"],
 		)
 
@@ -60,7 +60,7 @@ def sync_user_caldav_events(dav_account_name):
 	dav_account = frappe.get_doc("DAV Account", dav_account_name)
 
 	# Check if account is still enabled
-	if not dav_account.enabled or not dav_account.auto_sync_events:
+	if not dav_account.enabled:
 		frappe.logger().info(f"Skipping disabled account: {dav_account_name}")
 		return
 
@@ -186,7 +186,7 @@ def check_deleted_events(dav_account_name):
 		frappe.logger().info(f"Checking for deleted events in {dav_account_name}")
 
 		dav_account = frappe.get_doc("DAV Account", dav_account_name)
-		if not dav_account.enabled or not dav_account.auto_sync_events:
+		if not dav_account.enabled:
 			return
 		if not dav_account.auto_delete_caldav_events:
 			return
@@ -416,33 +416,3 @@ def log_sync_statistics(dav_account_name):
 
 	except Exception as e:
 		frappe.log_error(f"Failed to log statistics: {e!s}")
-
-
-# ---------------------------
-# ⚡ INITIALIZATION
-# ---------------------------
-
-
-def init_scheduler():
-	"""
-	Initialize scheduler on app startup
-	"""
-
-	try:
-		# Check if ERPNext DAV Settings exists
-		if not frappe.db.exists("ERPNext DAV Settings", "ERPNext DAV Settings"):
-			# Create default settings
-			frappe.get_doc(
-				{
-					"doctype": "ERPNext DAV Settings",
-					"auto_sync_events": 1,
-					"auto_delete_caldav_events": 0,
-					"caldav_sync_frequency": "Hourly",
-					"cleanup_frequency": "Weekly",
-				}
-			).insert(ignore_permissions=True)
-
-			frappe.logger().info("Initialized ERPNext DAV Settings")
-
-	except Exception as e:
-		frappe.log_error(f"Scheduler init error: {e!s}")

@@ -15,10 +15,9 @@ def sync_contact_to_carddav(doc, method):
 			dav = frappe.get_doc("DAV Account", doc.custom_dav_account)
 		if method == "before_insert" and not doc.custom_enable_dav_sync:
 			return
-		elif method == "before_insert" and doc.custom_enable_dav_sync and dav.auto_sync_contacts:
+		elif method == "before_insert" and doc.custom_enable_dav_sync:
 			doc.dav_account = dav.name
-		if not dav.auto_sync_contacts:
-			return
+
 		if frappe.flags.in_scheduled_job:
 			return
 
