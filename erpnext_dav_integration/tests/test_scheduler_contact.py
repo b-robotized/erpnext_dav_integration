@@ -18,9 +18,7 @@ class TestCardDAVContactSync(IntegrationTestCase):
 				self.text = text
 
 		mock_request.side_effect = [DummyResponse(207, "<xml/"), DummyResponse(207, "<xml/>")]
-		mock_parse_addressbooks.return_value = [
-			{"href": "/addressbooks/user", "displayname": "My Book"}
-		]
+		mock_parse_addressbooks.return_value = [{"href": "/addressbooks/user", "displayname": "My Book"}]
 		mock_parse_vcards_with_href.return_value = [
 			{"href": "/card.vcf", "vcard": "BEGIN:VCARD\r\nFN:Jane\r\nEND:VCARD"}
 		]

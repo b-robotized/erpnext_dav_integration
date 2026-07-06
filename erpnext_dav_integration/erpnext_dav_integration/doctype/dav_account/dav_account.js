@@ -78,6 +78,9 @@ frappe.ui.form.on("DAV Account", {
 	discover_calendars_btn(frm) {
 		frappe.call({
 			method: "discover_calendars",
+			args: {
+				skip_filtering: true,
+			},
 			doc: frm.doc,
 			callback: function (r) {
 				if (!r.exc) {

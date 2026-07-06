@@ -86,7 +86,7 @@ class WebDAVManager:
 			return response
 
 		except requests.exceptions.RequestException as e:
-			frappe.log_error(f"CalDAV request failed: {str(e)}")
+			frappe.log_error(f"CalDAV request failed: {e!s}")
 			raise
 
 	# ---------------------------
@@ -225,7 +225,7 @@ class WebDAVManager:
 		response = self._request("PUT", path, data=content, headers=headers)
 
 		if response.status_code == 412:
-			frappe.throw("File was modified by another client.  " "Refresh the cloud version and retry.")
+			frappe.throw("File was modified by another client.  Refresh the cloud version and retry.")
 		if response.status_code not in (201, 204):
 			frappe.throw(f"WebDAV PUT failed [{path}]: {response.status_code}\n{response.text}")
 
@@ -378,7 +378,7 @@ class WebDAVManager:
 			else:
 				return False
 		except Exception as e:
-			frappe.log_error(f"DAV URL validation failed: {str(e)}")
+			frappe.log_error(f"DAV URL validation failed: {e!s}")
 			return False
 
 	def get_share_links(self, path: str) -> list[dict]:
@@ -440,7 +440,7 @@ class WebDAVManager:
 							return child.text.rstrip("/") + "/"
 
 		except Exception as e:
-			frappe.log_error(f"Calendar home discovery failed: {str(e)}")
+			frappe.log_error(f"Calendar home discovery failed: {e!s}")
 
 		# ✅ Fallback for Nextcloud
 		fallback = f"/remote.php/dav/calendars/{self.username}/"
@@ -449,7 +449,7 @@ class WebDAVManager:
 	# ---------------------------
 	# 📅 STEP 2: DISCOVER CALENDARS
 	# ---------------------------
-	def discover_calendars(self):
+	def discover_calendars(self, skip_filtering=False):
 		calendar_home = self.get_calendar_home_set()
 		url = f"{self.base_url}{calendar_home}"
 
@@ -475,14 +475,16 @@ class WebDAVManager:
 		response = self._request("PROPFIND", url, data=data, depth="1")
 		calendars = []
 		root = ET.fromstring(response.content)
-		dav_calendar_data = frappe.db.get_all("DAV Calendar", fields=["name", "dav_calendar", "dav_calendar_url", "dav_account"])
+		dav_calendar_data = frappe.db.get_all(
+			"DAV Calendar", fields=["name", "dav_calendar", "dav_calendar_url", "dav_account"]
+		)
 		for resp in root.iter():
 			if not resp.tag.endswith("response"):
 				continue
 			href = self._find_text(resp, "href")
 			if not href:
 				continue
-			if not any(cal.dav_calendar_url == href for cal in dav_calendar_data):
+			if not any(cal.dav_calendar_url == href for cal in dav_calendar_data) and not skip_filtering:
 				continue
 			prop = None
 			for elem in resp.iter():
@@ -498,7 +500,7 @@ class WebDAVManager:
 				if elem.tag.endswith("resourcetype"):
 					resourcetype = elem
 					break
-			
+
 			if self._has_calendar_resource(resourcetype):
 				displayname = self._find_text(prop, "displayname")
 				color = self._extract_color(prop)
@@ -600,7 +602,7 @@ class WebDAVManager:
 					events.append(event_data)
 
 			except Exception as e:
-				frappe.log_error(f"Event parse failed ({href}): {str(e)}")
+				frappe.log_error(f"Event parse failed ({href}): {e!s}")
 
 		return events
 
@@ -672,7 +674,7 @@ class WebDAVManager:
 
 					WebDAVSyncor.sync_caldav_to_erpnext(event, self.dav_account, cal["url"])
 				except Exception as e:
-					frappe.log_error(f"Sync failed for {event.get('uid')}: {str(e)}")
+					frappe.log_error(f"Sync failed for {event.get('uid')}: {e!s}")
 
 			# ✅ STEP 2: Detect deletions
 			# self._mark_deleted_events(current_uids, cal["url"])
@@ -697,7 +699,7 @@ class WebDAVManager:
 				try:
 					WebDAVSyncor.handle_caldav_deletion(event.caldav_event_id, self.dav_account.name)
 				except Exception as e:
-					frappe.log_error(f"Deletion sync failed for {event.name}: {str(e)}")
+					frappe.log_error(f"Deletion sync failed for {event.name}: {e!s}")
 
 	# ---------------------------
 	# ✨ CREATE NEW EVENT
@@ -804,7 +806,7 @@ class WebDAVManager:
 			)
 			frappe.msgprint(f"Creating event in calendar: {calendar_url}", alert=True)
 		except Exception as e:
-			error_msg = f"CalDAV create request failed: {str(e)}"
+			error_msg = f"CalDAV create request failed: {e!s}"
 			frappe.log_error(error_msg)
 			frappe.throw(error_msg)
 
@@ -931,7 +933,7 @@ class WebDAVManager:
 		try:
 			response = requests.put(url, headers=headers, data=ical_data, auth=self.auth, timeout=30)
 		except Exception as e:
-			error_msg = f"CalDAV update request failed: {str(e)}"
+			error_msg = f"CalDAV update request failed: {e!s}"
 			frappe.log_error(error_msg)
 			frappe.throw(error_msg)
 
@@ -985,7 +987,7 @@ class WebDAVManager:
 				timeout=30,
 			)
 		except Exception as e:
-			error_msg = f"CalDAV delete request failed: {str(e)}"
+			error_msg = f"CalDAV delete request failed: {e!s}"
 			frappe.log_error(error_msg)
 			frappe.throw(error_msg)
 
@@ -1046,7 +1048,7 @@ class WebDAVManager:
 			return value
 
 		except Exception as e:
-			frappe.log_error(f"_to_utc_datetime failed: {value} -> {str(e)}")
+			frappe.log_error(f"_to_utc_datetime failed: {value} -> {e!s}")
 			return None
 
 	# ---------------------------
@@ -1528,7 +1530,7 @@ class WebDAVSyncor:
 				"Contact Email", {"email_id": email}, "parent"
 			)
 
-			row = existing_emails.get(email)
+			existing_emails.get(email)
 
 			new_table.append(
 				{

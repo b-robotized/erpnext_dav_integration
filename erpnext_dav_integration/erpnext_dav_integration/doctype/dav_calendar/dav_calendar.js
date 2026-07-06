@@ -15,16 +15,16 @@ frappe.ui.form.on("DAV Calendar", {
 			method: "erpnext_dav_integration.webdav_sync.api.get_calendar_url",
 			args: {
 				dav_account: frm.doc.dav_account,
-				calendar_name: frm.doc.dav_calendar
+				calendar_name: frm.doc.dav_calendar,
 			},
 			callback: function (r) {
 				if (r.message) {
 					console.log("Setting dav_calendar_url to", r.message);
 					frm.set_value("dav_calendar_url", r.message[0]);
 				}
-			}
+			},
 		});
-	}
+	},
 });
 function load_calendars(frm) {
 	if (!frm.doc.dav_account) return;

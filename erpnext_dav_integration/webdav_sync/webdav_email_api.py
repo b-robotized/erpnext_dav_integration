@@ -48,7 +48,7 @@ def _file_size_display(bytes_count: int) -> str:
 		return f"{bytes_count} B"
 	if bytes_count < 1024**2:
 		return f"{bytes_count / 1024:.1f} KB"
-	return f"{bytes_count / 1024 ** 2:.1f} MB"
+	return f"{bytes_count / 1024**2:.1f} MB"
 
 
 def _icon_type(filename: str, is_collection: bool) -> str:
@@ -136,7 +136,7 @@ def list_folder(path: str, dav_account: str | None = None) -> list[dict]:
 		dav_href = r["href"]
 		relative_path = dav_href.split(f"/remote.php/dav/files/{mgr.username}", 1)[-1]
 
-		preview_url = f"{base_url}/core/preview" f"?file={quote(relative_path)}" f"&x=64&y=64&a=true"
+		preview_url = f"{base_url}/core/preview?file={quote(relative_path)}&x=64&y=64&a=true"
 		result.append(
 			{
 				"href": r["href"],

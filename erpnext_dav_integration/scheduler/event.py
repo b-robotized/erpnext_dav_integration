@@ -36,7 +36,7 @@ def sync_all_caldav_events():
 			try:
 				sync_user_caldav_events(account["name"])
 			except Exception as e:
-				frappe.log_error(f"Error syncing CalDAV for {account['name']}: {str(e)}", "CalDAV Sync Error")
+				frappe.log_error(f"Error syncing CalDAV for {account['name']}: {e!s}", "CalDAV Sync Error")
 
 		frappe.logger().info("CalDAV sync completed")
 
@@ -97,7 +97,7 @@ def sync_user_caldav_events(dav_account_name):
 		frappe.logger().info(f"Sync completed for {dav_account_name}")
 
 	except Exception as e:
-		frappe.log_error(f"Failed to sync {dav_account_name}: {str(e)}", "CalDAV Sync Error")
+		frappe.log_error(f"Failed to sync {dav_account_name}: {e!s}", "CalDAV Sync Error")
 		raise
 
 
@@ -152,7 +152,7 @@ def sync_single_calendar(dav_account, calendar):
 
 			except Exception as e:
 				frappe.log_error(
-					f"Failed to sync event {event_data.get('uid')}: {str(e)}", "Calendar Event Sync Error"
+					f"Failed to sync event {event_data.get('uid')}: {e!s}", "Calendar Event Sync Error"
 				)
 
 		# Update last sync time
@@ -165,7 +165,7 @@ def sync_single_calendar(dav_account, calendar):
 		frappe.logger().info(f"Synced {synced_count} events from {calendar_name}")
 
 	except Exception as e:
-		frappe.log_error(f"Failed to sync calendar {calendar.get('name')}: {str(e)}", "Calendar Sync Error")
+		frappe.log_error(f"Failed to sync calendar {calendar.get('name')}: {e!s}", "Calendar Sync Error")
 
 
 # ---------------------------
@@ -228,7 +228,7 @@ def check_deleted_events(dav_account_name):
 			frappe.logger().warning(f"Found {deleted_count} deleted events")
 
 	except Exception as e:
-		frappe.log_error(f"Error checking deleted events: {str(e)}", "Check Deletion Error")
+		frappe.log_error(f"Error checking deleted events: {e!s}", "Check Deletion Error")
 
 
 # ---------------------------
@@ -267,9 +267,7 @@ def handle_caldav_event_deletion(caldav_event_id, dav_account_name, event_record
 		send_deletion_notification(event_record)
 
 	except Exception as e:
-		frappe.log_error(
-			f"Failed to handle deletion of {caldav_event_id}: {str(e)}", "Deletion Handler Error"
-		)
+		frappe.log_error(f"Failed to handle deletion of {caldav_event_id}: {e!s}", "Deletion Handler Error")
 
 
 # ---------------------------
@@ -302,7 +300,7 @@ def create_deletion_todo(event, event_record):
 		frappe.logger().info(f"Created Todo for {event.owner}")
 
 	except Exception as e:
-		frappe.log_error(f"Failed to create Todo: {str(e)}", "Todo Creation Error")
+		frappe.log_error(f"Failed to create Todo: {e!s}", "Todo Creation Error")
 
 
 # ---------------------------
@@ -331,7 +329,7 @@ def send_deletion_notification(event_record):
 		frappe.logger().info(f"Sent notification to {event.owner}")
 
 	except Exception as e:
-		frappe.log_error(f"Failed to send notification: {str(e)}", "Notification Error")
+		frappe.log_error(f"Failed to send notification: {e!s}", "Notification Error")
 
 
 # ---------------------------
@@ -370,13 +368,13 @@ def cleanup_stale_events():
 				# Option 1: Just archive (set as cancelled, don't delete)
 				# This preserves history
 
-				event = frappe.get_doc("Event", event_record["name"])
+				frappe.get_doc("Event", event_record["name"])
 				# Already marked as cancelled, so just leave it
 
 				frappe.logger().info(f"Archived: {event_record['name']}")
 
 			except Exception as e:
-				frappe.log_error(f"Failed to cleanup {event_record['name']}: {str(e)}", "Cleanup Error")
+				frappe.log_error(f"Failed to cleanup {event_record['name']}: {e!s}", "Cleanup Error")
 
 		frappe.logger().info("Cleanup completed")
 
@@ -417,7 +415,7 @@ def log_sync_statistics(dav_account_name):
 		)
 
 	except Exception as e:
-		frappe.log_error(f"Failed to log statistics: {str(e)}")
+		frappe.log_error(f"Failed to log statistics: {e!s}")
 
 
 # ---------------------------
@@ -447,4 +445,4 @@ def init_scheduler():
 			frappe.logger().info("Initialized ERPNext DAV Settings")
 
 	except Exception as e:
-		frappe.log_error(f"Scheduler init error: {str(e)}")
+		frappe.log_error(f"Scheduler init error: {e!s}")

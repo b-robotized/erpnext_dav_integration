@@ -47,19 +47,18 @@ frappe.ui.form.on("DAV AddressBook", {
 			},
 		});
 	},
-    dav_addressbook(frm) {
-        frappe.call({
-            method: "erpnext_dav_integration.erpnext_dav_integration.doctype.dav_account.dav_account.get_address_book_url",
-            args: {
-                doc: frm.doc.dav_account,
-                address_book_name: frm.doc.dav_addressbook
-            },
-            callback: function (r) {
-                if (r.message) {
-                    
-                    frm.set_value("dav_addressbook_url", r.message);
-                }
-            }
-        });
-    }
+	dav_addressbook(frm) {
+		frappe.call({
+			method: "erpnext_dav_integration.erpnext_dav_integration.doctype.dav_account.dav_account.get_address_book_url",
+			args: {
+				doc: frm.doc.dav_account,
+				address_book_name: frm.doc.dav_addressbook,
+			},
+			callback: function (r) {
+				if (r.message) {
+					frm.set_value("dav_addressbook_url", r.message);
+				}
+			},
+		});
+	},
 });

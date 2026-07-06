@@ -13,9 +13,7 @@ def sync_all_caldav_events():
 		try:
 			sync_user_caldav_events(account["name"])
 		except Exception as e:
-			frappe.log_error(
-				f"Error syncing CalDAV for {account['name']}: {str(e)}", title="CalDAV Sync Error"
-			)
+			frappe.log_error(f"Error syncing CalDAV for {account['name']}: {e!s}", title="CalDAV Sync Error")
 
 
 def sync_user_caldav_events(dav_account_name):

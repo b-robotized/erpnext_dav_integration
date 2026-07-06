@@ -54,7 +54,7 @@ class CustomEvent(Event):
 			try:
 				self._sync_to_caldav()
 			except Exception as e:
-				frappe.log_error(f"Failed to sync Event {self.name} to CalDAV: {str(e)}", "CalDAV Sync Error")
+				frappe.log_error(f"Failed to sync Event {self.name} to CalDAV: {e!s}", "CalDAV Sync Error")
 				self.caldav_sync_status = "OutOfSync"
 
 	def on_update(self):
@@ -78,7 +78,7 @@ class CustomEvent(Event):
 		if self.create_in_caldav and self.caldav_account:
 			try:
 				self._create_in_caldav()
-			except Exception as e:
+			except Exception:
 				frappe.log_error(frappe.get_traceback(), "CalDAV Create Error")
 
 	# ---------------------------

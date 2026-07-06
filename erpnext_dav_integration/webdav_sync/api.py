@@ -332,7 +332,7 @@ def refresh_from_caldav(event_name):
 	try:
 		# Fetch from CalDAV
 		manager = WebDAVManager(event.caldav_account)
-		dav_account = frappe.get_doc("DAV Account", event.caldav_account)
+		frappe.get_doc("DAV Account", event.caldav_account)
 
 		event_url = event.caldav_event_url
 		if not event_url:

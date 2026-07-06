@@ -39,7 +39,7 @@ def sync_contact_to_carddav(doc, method):
 			else:
 				create_contact(dav, doc, vcard, password)
 		except Exception as e:
-			frappe.log_error(f"Error syncing contact {doc.name} to CardDAV: {str(e)}", "DAV Sync Error")
+			frappe.log_error(f"Error syncing contact {doc.name} to CardDAV: {e!s}", "DAV Sync Error")
 			doc.custom_sync_status = "Failed"
 			doc.custom_last_sync = frappe.utils.now()
 			raise
