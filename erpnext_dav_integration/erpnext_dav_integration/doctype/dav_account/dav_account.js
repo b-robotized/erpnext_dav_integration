@@ -4,10 +4,10 @@
 frappe.ui.form.on("DAV Account", {
 	refresh(frm) {
 		if (frm.doc.owner !== frappe.session.user) return;
-			frm.add_custom_button("Create Address Book", () => {
-				frappe.prompt(
-					[
-						{
+		frm.add_custom_button("Create Address Book", () => {
+			frappe.prompt(
+				[
+					{
 						label: "Address Book Name",
 						fieldname: "address_book_name",
 						fieldtype: "Data",
@@ -70,7 +70,6 @@ frappe.ui.form.on("DAV Account", {
 							"Another DAV Account is already marked as default. Please uncheck the default option for the other account before saving this one.",
 							"Default Account Conflict"
 						);
-						
 					}
 				},
 			});
@@ -87,7 +86,7 @@ frappe.ui.form.on("DAV Account", {
 				}
 			},
 		});
-	}
+	},
 });
 
 frappe.ui.form.on("DAV Address Book", {

@@ -170,23 +170,31 @@ def create_and_update_contacts_from_vcf(
 				# Priority 1: UID
 				if uid:
 					existing_contact = frappe.db.exists("Contact", {"custom_vcard_url": vcard_url})
-				
+
 				emails = vcard.contents.get("email", [])
-				
+
 				for email in emails:
 					email_value = str(email.value)
-					if frappe.db.exists("Contact Email", {"email_id": email_value, "parent": ["!=", existing_contact]}):
-						frappe.db.sql("""
+					if frappe.db.exists(
+						"Contact Email", {"email_id": email_value, "parent": ["!=", existing_contact]}
+					):
+						frappe.db.sql(
+							"""
 							UPDATE `tabContact Email`
 							SET `custom_duplicate` = 'Yes'
 							WHERE email_id = %s AND parent != %s
-						""", (email_value, existing_contact))
+						""",
+							(email_value, existing_contact),
+						)
 					else:
-						frappe.db.sql("""
+						frappe.db.sql(
+							"""
 							UPDATE `tabContact Email`
 							SET `custom_duplicate` = 'No'
 							WHERE email_id = %s
-						""", (email_value,))
+						""",
+							(email_value,),
+						)
 
 				# ------------------------
 				# Create or Update
@@ -217,7 +225,7 @@ def create_and_update_contacts_from_vcf(
 				contact_doc.custom_addresses = []
 				for adr in addresses:
 					value = adr.value
-					
+
 					full_address = " ".join(
 						filter(
 							None,
@@ -411,7 +419,7 @@ def synchronize_carddav_contacts():
 		password = get_decrypted_password("DAV Account", dav.name, "app_password")
 
 		# Fetch all vCards from CardDAV server
-		all_vcard_entries = fetch_vcards_from_carddav(base, username, password)
+		all_vcard_entries = fetch_vcards_from_carddav(base, username, password, dav.name)
 
 		for entry in all_vcard_entries:
 			vcard_string = entry["vcard"]
@@ -430,15 +438,18 @@ def synchronize_carddav_contacts():
 				vcard_url=entry["vcard_url"],
 			)
 	# After processing all contacts, print a duplication report
-	duplicate_emails = frappe.db.sql("""
+	duplicate_emails = frappe.db.sql(
+		"""
 		SELECT email_id, COUNT(*)
 		FROM `tabContact Email`
 		WHERE custom_duplicate = 'Yes'
 		GROUP BY email_id
 		HAVING COUNT(*) > 1
-	""", as_dict=True)
+	""",
+		as_dict=True,
+	)
 	if duplicate_emails:
-		report = "<table class=\"table table-bordered\">"
+		report = '<table class="table table-bordered">'
 		report += "<thead><tr><th>Email</th><th>Count</th></tr></thead>"
 		report += "<tbody>"
 		for row in duplicate_emails:
@@ -448,7 +459,7 @@ def synchronize_carddav_contacts():
 	frappe.db.commit()
 
 
-def fetch_vcards_from_carddav(base_url, username, password):
+def fetch_vcards_from_carddav(base_url, username, password, dav_account_name=None):
 	headers = {
 		"Depth": "1",
 		"Content-Type": "application/xml",
@@ -478,6 +489,11 @@ def fetch_vcards_from_carddav(base_url, username, password):
 		raise Exception(f"Failed to fetch addressbooks: {response.status_code}")
 
 	addressbooks = parse_addressbooks(response.text)
+	addressbook_data = frappe.db.get_all(
+		"DAV AddressBook",
+		filters={"dav_account": dav_account_name},
+		fields=["dav_addressbook", "dav_addressbook_url"],
+	)
 
 	all_vcard_entries = []
 	xml_body = """<?xml version="1.0" encoding="UTF-8"?>
@@ -491,7 +507,8 @@ def fetch_vcards_from_carddav(base_url, username, password):
 	# Step 2: Loop each addressbook
 	for ab in addressbooks:
 		ab_url = base_url.rstrip("/") + ab.get("href", "")
-
+		if ab.get("href", "") not in [entry["dav_addressbook_url"] for entry in addressbook_data]:
+			continue  # Skip if addressbook URL is not in the DAV AddressBook table
 		res = requests.request(
 			"PROPFIND",
 			ab_url,
