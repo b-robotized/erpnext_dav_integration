@@ -38,14 +38,6 @@ class CustomEvent(Event):
 		):
 			return
 
-		auto_sync = frappe.db.get_value("DAV Account", self.caldav_account, "auto_sync_events")
-
-		if not auto_sync:
-			# Mark as out-of-sync for manual sync later
-			
-			self.caldav_sync_status = "OutOfSync"
-
-			return
 
 		# Check if fields changed
 		changed_fields = self._get_changed_caldav_fields()
