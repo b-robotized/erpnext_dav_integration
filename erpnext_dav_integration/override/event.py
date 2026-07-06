@@ -42,8 +42,8 @@ class CustomEvent(Event):
 
 		if not auto_sync:
 			# Mark as out-of-sync for manual sync later
-			if self.has_value_changed():
-				self.caldav_sync_status = "OutOfSync"
+			
+			self.caldav_sync_status = "OutOfSync"
 
 			return
 
