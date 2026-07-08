@@ -206,7 +206,6 @@ def check_deleted_events(dav_account_name):
 
 		if not synced_events:
 			return
-		frappe.log_error(f"Check for deleted events {dav_account_name}4")
 		# Get all events currently in CalDAV
 		calendars = manager.discover_calendars()
 		caldav_event_ids = set()
