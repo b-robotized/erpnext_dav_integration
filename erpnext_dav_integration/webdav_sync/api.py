@@ -86,10 +86,6 @@ def fetch_events_from_dav_calendar():
 	account = frappe.get_doc("DAV Account", {"enabled": 1, "default": 1})
 
 	if not account:
-		# Fallback to any enabled DAV account if there is no default configured
-		account = frappe.get_doc("DAV Account", {"enabled": 1, "default": 0})
-
-	if not account:
 		frappe.throw(_("No active DAV Account with default calendar found"))
 	else:
 		manager = WebDAVManager(account.name)
