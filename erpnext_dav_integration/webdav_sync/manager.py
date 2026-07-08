@@ -139,7 +139,6 @@ class WebDAVManager:
         </d:propfind>"""
 
 		response = self._request("PROPFIND", path, data=body, depth=depth)
-		frappe.log_error(f"PROPFIND {path} → {response}", "WebDAV PROPFIND")
 		if response.status_code == 404:
 			return []
 
