@@ -31,10 +31,7 @@ scheduler_events = {
 		"0 15 * * *": [
 			"erpnext_dav_integration.scheduler.contact.schedule_synchronization",
 		],
-	},
-	"hourly": [
-		"erpnext_dav_integration.webdav_sync.scheduler.scheduled_file_sync",
-	],
+	}
 }
 
 doctype_list_js = {"Contact": "public/js/contact_list.js", "Event": "public/js/event_list.js"}
