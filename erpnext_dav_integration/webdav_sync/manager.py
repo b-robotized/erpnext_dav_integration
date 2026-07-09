@@ -267,7 +267,7 @@ class WebDAVManager:
 		if response.status_code == 405:
 			return False  # already exists
 		if response.status_code == 409:
-			# parent missing – ensure it exists first, then retry
+			# parent missing - ensure it exists first, then retry
 			parent = str(PurePosixPath(path.rstrip("/")).parent) + "/"
 			self.mkcol(parent)
 			return self.mkcol(path)
@@ -1142,7 +1142,7 @@ class WebDAVManager:
 			for component in cal.walk():
 				if component.name == "VEVENT":
 					return int(component.get("sequence", 0))
-		except:
+		except Exception:
 			pass
 		return 0
 
@@ -1158,7 +1158,7 @@ class WebDAVManager:
 					created = component.get("created")
 					if created:
 						return created.dt if hasattr(created, "dt") else created
-		except:
+		except Exception:
 			pass
 		return None
 
@@ -1199,7 +1199,7 @@ def extract_tzid_fast(tz_data):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 3.  AttachmentStrategy  –  copy vs link
+# 3.  AttachmentStrategy - copy vs link
 # ══════════════════════════════════════════════════════════════════════════════
 
 
@@ -1208,11 +1208,11 @@ class AttachmentStrategy:
 	Determines *how* a Nextcloud file is attached to an ERPNext document.
 
 	Two strategies:
-	  COPY  – download the file and upload it to ERPNext's file storage.
+	  COPY - download the file and upload it to ERPNext's file storage.
 	          The ERPNext File record owns the bytes; changes in Nextcloud
 	          are NOT reflected automatically.
 
-	  LINK  – create (or reuse) a Nextcloud public share link and attach it
+	  LINK - create (or reuse) a Nextcloud public share link and attach it
 	          as a URL-type File record in ERPNext.  Zero storage duplication.
 	          The file lives in Nextcloud permanently.
 
@@ -1349,7 +1349,7 @@ class AttachmentStrategy:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4.  WebDAVSyncor  –  pull invoices & contracts from Nextcloud
+# 4.  WebDAVSyncor - pull invoices & contracts from Nextcloud
 # ══════════════════════════════════════════════════════════════════════════════
 
 

@@ -1,5 +1,5 @@
 """
-webdav_email_api.py  –  Use Case 1: WebDAV files in email attachments
+webdav_email_api.py - Use Case 1: WebDAV files in email attachments
 
 Whitelisted API endpoints called by webdav_file_browser.js:
 

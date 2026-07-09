@@ -134,7 +134,7 @@ class DAVAccount(Document):
 				# ✅ Update name only, keep user flags
 				existing_books[url].address_book_name = name
 			else:
-				# ➕ New address book
+				# + New address book
 				self.append("dav_address_books", {"address_book_name": name, "url": url})
 
 		# 🔵 Step 4: Remove deleted ones
