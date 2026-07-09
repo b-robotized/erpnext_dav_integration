@@ -1,7 +1,6 @@
 import mimetypes
 import re
 import time
-from defusedxml import ElementTree as ET
 from datetime import datetime, timedelta
 from pathlib import PurePosixPath
 from urllib.parse import quote, unquote, urlparse
@@ -11,6 +10,7 @@ from zoneinfo import ZoneInfo
 import frappe
 import pybreaker
 import requests
+from defusedxml import ElementTree as ET
 from frappe import _
 from frappe.utils.password import get_decrypted_password
 from icalendar import Calendar, vCalAddress, vText

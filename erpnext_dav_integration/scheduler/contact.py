@@ -2,7 +2,6 @@ import base64
 import html
 import re
 import uuid
-from defusedxml import ElementTree as ET
 from datetime import datetime
 from io import BytesIO
 
@@ -10,6 +9,7 @@ import frappe
 import langcodes
 import requests
 import vobject
+from defusedxml import ElementTree as ET
 from frappe import _
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth

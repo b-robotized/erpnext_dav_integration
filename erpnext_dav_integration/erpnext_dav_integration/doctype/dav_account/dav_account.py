@@ -1,10 +1,9 @@
 # Copyright (c) 2026, b»robotized group and contributors
 # For license information, please see license.txt
 
-from defusedxml import ElementTree as ET
-
 import frappe
 import requests
+from defusedxml import ElementTree as ET
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils.password import get_decrypted_password
