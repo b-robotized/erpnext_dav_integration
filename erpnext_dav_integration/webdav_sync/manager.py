@@ -32,6 +32,9 @@ NS = {
 INVOICE_KEYWORDS = re.compile(r"invoice|rechnung|factura|fattura", re.I)
 CONTRACT_KEYWORDS = re.compile(r"contract|vertrag|contrato|contratto", re.I)
 
+DEFAULT_CALDAV_SYNC_PAST_DAYS = 10
+DEFAULT_CALDAV_SYNC_FUTURE_DAYS = 365
+
 
 def normalize_url(url: str) -> str:
 	"""Normalize a URL by stripping trailing slashes and whitespace."""
@@ -48,6 +51,21 @@ class WebDAVManager:
 		self.rate_limiter = RateLimiter(rate=5, per=1)
 		expire_days = int(self.dav_account.default_share_link_expire_in or 0)
 		self.file_expire_date = datetime.now(timezone.utc) + timedelta(days=expire_days)
+
+		# Load CalDAV sync window from DAV Settings singleton
+		try:
+			dav_settings = frappe.get_single("DAV Settings")
+		except Exception:
+			dav_settings = None
+
+		self.caldav_sync_past_days = int(
+			getattr(dav_settings, "caldav_sync_past_days", DEFAULT_CALDAV_SYNC_PAST_DAYS)
+			or DEFAULT_CALDAV_SYNC_PAST_DAYS
+		)
+		self.caldav_sync_future_days = int(
+			getattr(dav_settings, "caldav_sync_future_days", DEFAULT_CALDAV_SYNC_FUTURE_DAYS)
+			or DEFAULT_CALDAV_SYNC_FUTURE_DAYS
+		)
 
 	# ---------------------------
 	# 🔍 GENERIC REQUEST HANDLER
@@ -561,13 +579,27 @@ class WebDAVManager:
 			return event_data
 		return None
 
-	# ---------------------------
-	# 📥 STEP 3: FETCH EVENTS
-	# ---------------------------
+	def _normalize_caldav_event_url(self, url: str) -> str:
+		if not url:
+			return ""
+
+		parsed = urlparse(url)
+		if parsed.scheme:
+			return parsed.path.rstrip("/")
+
+		return url.rstrip("/")
+
+	def _get_caldav_time_range(self):
+		now = datetime.now(timezone.utc)
+		start = now - timedelta(days=self.caldav_sync_past_days)
+		end = now + timedelta(days=self.caldav_sync_future_days)
+		return start.strftime("%Y%m%dT%H%M%SZ"), end.strftime("%Y%m%dT%H%M%SZ")
+
 	def fetch_events_from_calendar(self, calendar_url):
 		url = f"{self.base_url}{calendar_url}"
+		start, end = self._get_caldav_time_range()
 
-		data = """<?xml version="1.0"?>
+		data = f"""<?xml version="1.0"?>
         <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
             <d:prop>
                 <d:getetag />
@@ -575,7 +607,9 @@ class WebDAVManager:
             </d:prop>
             <c:filter>
                 <c:comp-filter name="VCALENDAR">
-                    <c:comp-filter name="VEVENT" />
+                    <c:comp-filter name="VEVENT">
+                    <c:time-range start="{start}" end="{end}" />
+                    </c:comp-filter>
                 </c:comp-filter>
             </c:filter>
         </c:calendar-query>"""
@@ -607,7 +641,12 @@ class WebDAVManager:
 
 				if event_data:
 					event_data.update(
-						{"caldav_url": href, "etag": etag, "calendar_url": calendar_url, "text": cal_data}
+						{
+							"caldav_url": href,
+							"etag": etag,
+							"calendar_url": calendar_url,
+							"text": cal_data,
+						}
 					)
 					events.append(event_data)
 
@@ -615,6 +654,35 @@ class WebDAVManager:
 				frappe.log_error(f"Event parse failed ({href}): {e!s}")
 
 		return events
+
+	def fetch_event_hrefs_from_calendar(self, calendar_url):
+		url = f"{self.base_url}{calendar_url}"
+
+		data = """<?xml version="1.0"?>
+        <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+            <d:prop>
+                <d:getetag />
+            </d:prop>
+            <c:filter>
+                <c:comp-filter name="VCALENDAR">
+                    <c:comp-filter name="VEVENT" />
+                </c:comp-filter>
+            </c:filter>
+        </c:calendar-query>"""
+
+		response = self._request("REPORT", url, data=data, depth="1")
+		root = ET.fromstring(response.content)
+
+		event_hrefs = set()
+		for resp in root.iter():
+			if not resp.tag.endswith("response"):
+				continue
+
+			href = self._find_text(resp, "href")
+			if href:
+				event_hrefs.add(self._normalize_caldav_event_url(href))
+
+		return event_hrefs
 
 	# ---------------------------
 	# 🧠 ICAL PARSER

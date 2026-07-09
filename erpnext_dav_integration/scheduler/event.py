@@ -201,24 +201,26 @@ def check_deleted_events(dav_account_name):
 				"caldav_event_id": ("is", "set"),
 				"sync_with_caldav": 1,
 			},
-			fields=["name", "caldav_event_id", "subject"],
+			fields=["name", "caldav_event_id", "caldav_event_url", "subject"],
 		)
 
 		if not synced_events:
 			return
 		# Get all events currently in CalDAV
 		calendars = manager.discover_calendars()
-		caldav_event_ids = set()
+		caldav_event_urls = set()
 
 		for calendar in calendars:
-			events = manager.fetch_events_from_calendar(calendar["url"])
-			for event in events:
-				caldav_event_ids.add(event["uid"])
+			caldav_event_urls.update(manager.fetch_event_hrefs_from_calendar(calendar["url"]))
 
 		# Find missing events
 		deleted_count = 0
 		for synced_event in synced_events:
-			if synced_event["caldav_event_id"] not in caldav_event_ids:
+			if not synced_event.get("caldav_event_url"):
+				continue
+
+			local_url = manager._normalize_caldav_event_url(synced_event["caldav_event_url"])
+			if local_url not in caldav_event_urls:
 				# Event was deleted from CalDAV
 				handle_caldav_event_deletion(synced_event["caldav_event_id"], dav_account_name, synced_event)
 				deleted_count += 1
