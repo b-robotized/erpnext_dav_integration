@@ -158,6 +158,19 @@ bench --site your-site.com clear-cache
 
 > Note: It is recommended to create all `DAV Calendar` docs for each calendar list under the default DAV Account.
 
+### CalDAV Sync Window Settings
+
+The sync window for calendar events is configured in the `DAV Settings` DocType. These values control how far backwards and forwards the system fetches events during CalDAV synchronization:
+
+- `CALDAV Sync Past Days` — number of days before the current date to include when fetching events.
+- `CALDAV Sync Future Days` — number of days after the current date to include when fetching events.
+
+Defaults:
+- `CALDAV Sync Past Days`: 30
+- `CALDAV Sync Future Days`: 365
+
+These settings are read during event sync and affect scheduled syncs as well as manual calendar discovery.
+
 ### Contact Mapping
 
 #### Identity Fields
