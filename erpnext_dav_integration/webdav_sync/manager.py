@@ -508,8 +508,7 @@ class WebDAVManager:
 				continue
 			if (
 				not any(
-					normalize_url(cal.dav_calendar_url) == normalize_url(href)
-					for cal in dav_calendar_data
+					normalize_url(cal.dav_calendar_url) == normalize_url(href) for cal in dav_calendar_data
 				)
 				and not skip_filtering
 			):
