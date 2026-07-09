@@ -2,14 +2,14 @@ import mimetypes
 import re
 import time
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import PurePosixPath
 from urllib.parse import quote, unquote, urlparse
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import frappe
 import pybreaker
-import pytz
 import requests
 from frappe import _
 from frappe.utils.password import get_decrypted_password
@@ -51,7 +51,7 @@ class WebDAVManager:
 		self.auth = HTTPBasicAuth(self.username, self.password)
 		self.rate_limiter = RateLimiter(rate=5, per=1)
 		expire_days = int(self.dav_account.default_share_link_expire_in or 0)
-		self.file_expire_date = datetime.now(timezone.utc) + timedelta(days=expire_days)
+		self.file_expire_date = datetime.now(datetime.timezone.utc) + timedelta(days=expire_days)
 
 		# Load CalDAV sync window from DAV Settings singleton
 		try:
@@ -473,7 +473,7 @@ class WebDAVManager:
 	# ---------------------------
 	# 📅 STEP 2: DISCOVER CALENDARS
 	# ---------------------------
-	def discover_calendars(self, skip_filtering=False):
+	def discover_calendars(self, skip_filtering: bool = False):
 		calendar_home = self.get_calendar_home_set()
 		url = f"{self.base_url}{calendar_home}"
 
@@ -591,7 +591,7 @@ class WebDAVManager:
 		return url.rstrip("/")
 
 	def _get_caldav_time_range(self):
-		now = datetime.now(timezone.utc)
+		now = datetime.now(datetime.timezone.utc)
 		start = now - timedelta(days=self.caldav_sync_past_days)
 		end = now + timedelta(days=self.caldav_sync_future_days)
 		return start.strftime("%Y%m%dT%H%M%SZ"), end.strftime("%Y%m%dT%H%M%SZ")
@@ -810,9 +810,9 @@ class WebDAVManager:
 
 		# Core event data
 		vevent.add("uid", event_uuid)
-		vevent.add("dtstamp", datetime.now(pytz.UTC))
-		vevent.add("created", datetime.now(pytz.UTC))
-		vevent.add("last-modified", datetime.now(pytz.UTC))
+		vevent.add("dtstamp", datetime.now(datetime.timezone.utc))
+		vevent.add("created", datetime.now(datetime.timezone.utc))
+		vevent.add("last-modified", datetime.now(datetime.timezone.utc))
 		vevent.add("sequence", 0)
 
 		# Event details - FIX: Use correct field name
@@ -940,9 +940,11 @@ class WebDAVManager:
 
 		# Core fields (DO NOT CHANGE UID)
 		vevent.add("uid", event_doc.caldav_event_id)
-		vevent.add("dtstamp", datetime.now(pytz.UTC))
-		vevent.add("created", self._to_utc_datetime(event_doc.caldav_created) or datetime.now(pytz.UTC))
-		vevent.add("last-modified", datetime.now(pytz.UTC))
+		vevent.add("dtstamp", datetime.now(datetime.timezone.utc))
+		vevent.add(
+			"created", self._to_utc_datetime(event_doc.caldav_created) or datetime.now(datetime.timezone.utc)
+		)
+		vevent.add("last-modified", datetime.now(datetime.timezone.utc))
 		vevent.add("sequence", sequence)
 
 		# Basic details
@@ -1095,7 +1097,10 @@ class WebDAVManager:
 			return None
 
 		try:
-			system_tz = pytz.timezone(frappe.utils.get_system_timezone())
+			try:
+				system_tz = ZoneInfo(frappe.utils.get_system_timezone())
+			except Exception:
+				system_tz = datetime.now().astimezone().tzinfo or datetime.timezone.utc
 
 			# ---------------------------
 			# 🔤 String → datetime
@@ -1120,10 +1125,10 @@ class WebDAVManager:
 			# ---------------------------
 			if value.tzinfo:
 				# Already timezone-aware → convert to UTC
-				value = value.astimezone(pytz.UTC)
+				value = value.astimezone(datetime.timezone.utc)
 			else:
 				# 🔴 CRITICAL FIX:
-				value = system_tz.localize(value).astimezone(pytz.UTC)
+				value = value.replace(tzinfo=system_tz).astimezone(datetime.timezone.utc)
 
 			return value
 
@@ -1498,7 +1503,10 @@ class WebDAVSyncor:
 		if not value:
 			return None
 
-		system_tz = pytz.timezone(frappe.utils.get_system_timezone())
+		try:
+			system_tz = ZoneInfo(frappe.utils.get_system_timezone())
+		except Exception:
+			system_tz = datetime.now().astimezone().tzinfo or datetime.timezone.utc
 
 		# ---------------------------
 		# 📅 If already datetime/date
@@ -1513,7 +1521,7 @@ class WebDAVSyncor:
 				value = value.astimezone(system_tz)
 			else:
 				# assume UTC if naive (CalDAV usually sends UTC or TZ-aware)
-				value = pytz.UTC.localize(value).astimezone(system_tz)
+				value = value.replace(tzinfo=datetime.timezone.utc).astimezone(system_tz)
 
 			return value.replace(tzinfo=None)
 
@@ -1526,7 +1534,7 @@ class WebDAVSyncor:
 			if dt.tzinfo is not None:
 				dt = dt.astimezone(system_tz)
 			else:
-				dt = pytz.UTC.localize(dt).astimezone(system_tz)
+				dt = dt.replace(tzinfo=datetime.timezone.utc).astimezone(system_tz)
 
 			return dt.replace(tzinfo=None)
 

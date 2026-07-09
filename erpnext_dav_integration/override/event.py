@@ -155,6 +155,7 @@ class CustomEvent(Event):
 				"create_in_caldav": self.create_in_caldav,
 			},
 			update_modified=False,
+			commit=True,
 		)
 
 	def _sync_to_caldav(self):
@@ -176,6 +177,7 @@ class CustomEvent(Event):
 				"caldav_card_text": self.caldav_card_text,
 			},
 			update_modified=False,
+			commit=True,
 		)
 
 	def validate_event(doc):
