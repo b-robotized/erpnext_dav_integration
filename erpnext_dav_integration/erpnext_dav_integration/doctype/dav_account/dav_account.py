@@ -1,7 +1,7 @@
 # Copyright (c) 2026, b»robotized group and contributors
 # For license information, please see license.txt
 
-from xml.etree import ElementTree as ET
+from defusedxml import ElementTree as ET
 
 import frappe
 import requests
@@ -24,7 +24,7 @@ class DAVAccount(Document):
 
 		except Exception as e:
 			frappe.log_error(frappe.get_traceback(), "DAV Address Book Fetch Failed")
-			frappe.msgprint(_("Failed to fetch address books: {0}").format(e))
+			frappe.msgprint(_("Failed to fetch address books: {0}").format(str(e)))
 
 	@frappe.whitelist()
 	def discover_calendars(self, skip_filtering: bool = False):
@@ -198,7 +198,7 @@ from urllib.parse import urljoin
 
 
 @frappe.whitelist()
-def create_address_book(docname, address_book_name):
+def create_address_book(docname: str, address_book_name: str):
 	doc = frappe.get_doc("DAV Account", docname)
 
 	if not doc.base_url or not doc.username:
@@ -297,7 +297,7 @@ def get_address_book_url(doc, address_book_name):
 
 
 @frappe.whitelist()
-def delete_address_book(docname, address_book_url):
+def delete_address_book(docname: str, address_book_url: str):
 	doc = frappe.get_doc("DAV Account", docname)
 	url_to_delete = address_book_url
 

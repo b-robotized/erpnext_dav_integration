@@ -1,7 +1,7 @@
 import mimetypes
 import re
 import time
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 from datetime import datetime, timedelta
 from pathlib import PurePosixPath
 from urllib.parse import quote, unquote, urlparse
@@ -212,7 +212,7 @@ class WebDAVManager:
 		"""Download a file and return its raw bytes."""
 		response = self._request("GET", path, headers={"Content-Type": "application/octet-stream"})
 		if response.status_code != 200:
-			frappe.throw(_(f"WebDAV GET failed [{path}]: {response.status_code}"))
+			frappe.throw(_("WebDAV GET failed [{0}]: {1}").format(path, response.status_code))
 		return response.content
 
 	def get_file_stream(self, path: str):
@@ -250,7 +250,9 @@ class WebDAVManager:
 		if response.status_code == 412:
 			frappe.throw(_("File was modified by another client.  Refresh the cloud version and retry."))
 		if response.status_code not in (201, 204):
-			frappe.throw(_(f"WebDAV PUT failed [{path}]: {response.status_code}\n{response.text}"))
+			frappe.throw(
+				_("WebDAV PUT failed [{0}]: {1}\n{2}").format(path, response.status_code, response.text)
+			)
 
 		return response.headers.get("ETag", "").strip('"')
 
@@ -273,7 +275,7 @@ class WebDAVManager:
 			self.mkcol(parent)
 			return self.mkcol(path)
 		if response.status_code not in (200, 201):
-			frappe.throw(_(f"MKCOL failed [{path}]: {response.status_code}"))
+			frappe.throw(_("MKCOL failed [{0}]: {1}").format(path, response.status_code))
 
 		return True
 
@@ -285,7 +287,7 @@ class WebDAVManager:
 		if response.status_code == 404:
 			return False
 		if response.status_code not in (200, 204):
-			frappe.throw(_(f"WebDAV DELETE failed [{path}]: {response.status_code}"))
+			frappe.throw(_("WebDAV DELETE failed [{0}]: {1}").format(path, response.status_code))
 		return True
 
 	# ── COPY ──────────────────────────────────────────────────────────────────
@@ -298,7 +300,7 @@ class WebDAVManager:
 		}
 		response = self._request("COPY", src, headers=headers)
 		if response.status_code not in (201, 204):
-			frappe.throw(_(f"WebDAV COPY failed [{src} -> {dst}]: {response.status_code}"))
+			frappe.throw(_("WebDAV COPY failed [{0} -> {1}]: {2}").format(src, dst, response.status_code))
 		return True
 
 	# ── MOVE ──────────────────────────────────────────────────────────────────
@@ -311,7 +313,7 @@ class WebDAVManager:
 		}
 		response = self._request("MOVE", src, headers=headers)
 		if response.status_code not in (201, 204):
-			frappe.throw(_(f"WebDAV MOVE failed [{src} -> {dst}]: {response.status_code}"))
+			frappe.throw(_("WebDAV MOVE failed [{0} -> {1}]: {2}").format(src, dst, response.status_code))
 		return True
 
 	# ── Nextcloud share-link API ──────────────────────────────────────────────
@@ -377,8 +379,8 @@ class WebDAVManager:
 		)
 		if response.status_code not in (200, 201):
 			frappe.throw(
-				_(
-					f"Nextcloud share creation failed [{normalized_path}]: {response.status_code}\n{response.text}"
+				_("Nextcloud share creation failed [{0}]: {1}\n{2}").format(
+					normalized_path, response.status_code, response.text
 				)
 			)
 
@@ -892,7 +894,9 @@ class WebDAVManager:
 
 		# Handle response
 		if response.status_code not in [201, 204]:
-			error_msg = _(f"Failed to create event in CalDAV: {response.status_code}\n{response.text}")
+			error_msg = _("Failed to create event in CalDAV: {0}\n{1}").format(
+				response.status_code, response.text
+			)
 			frappe.log_error(error_msg)
 			frappe.throw(error_msg)
 
@@ -1022,13 +1026,14 @@ class WebDAVManager:
 		# 🔴 FIX: Handle 409 Conflict
 		if response.status_code == 409:
 			frappe.throw(
-				"Event was modified in the calendar. "
-				"Click 'Refresh from Calendar' to get the latest version, then try again."
+				_(
+					"Event was modified in the calendar. Click 'Refresh from Calendar' to get the latest version, then try again."
+				)
 			)
 
 		# Handle other errors
 		if response.status_code not in [201, 204]:
-			error_msg = _(f"CalDAV update failed: {response.status_code}\n{response.text}")
+			error_msg = _("CalDAV update failed: {0}\n{1}").format(response.status_code, response.text)
 			frappe.log_error(error_msg)
 			frappe.throw(error_msg)
 
@@ -1076,13 +1081,16 @@ class WebDAVManager:
 		# 🔴 FIX: Handle 409 Conflict
 		if response.status_code == 409:
 			frappe.throw(
-				"Event was modified in the calendar. "
-				"Click 'Refresh from Calendar' to get the latest version, then try again."
+				_(
+					"Event was modified in the calendar. Click 'Refresh from Calendar' to get the latest version, then try again."
+				)
 			)
 
 		# Handle other errors
 		if response.status_code not in [204, 200]:
-			error_msg = _(f"Failed to delete event from CalDAV: {response.status_code}\n{response.text}")
+			error_msg = _("Failed to delete event from CalDAV: {0}\n{1}").format(
+				response.status_code, response.text
+			)
 			frappe.log_error(error_msg)
 			frappe.throw(error_msg)
 
@@ -1267,7 +1275,7 @@ class AttachmentStrategy:
 		elif mode == "link":
 			return self._attach_link(cloud_path, doctype, docname, filename)
 		else:
-			frappe.throw(_(f"AttachmentStrategy: unknown mode '{mode}'.  Use 'copy' or 'link'."))
+			frappe.throw(_("AttachmentStrategy: unknown mode '{0}'.  Use 'copy' or 'link'.").format(mode))
 
 	# ── copy strategy ─────────────────────────────────────────────────────────
 

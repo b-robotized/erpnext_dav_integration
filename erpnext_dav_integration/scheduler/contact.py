@@ -2,7 +2,7 @@ import base64
 import html
 import re
 import uuid
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 from datetime import datetime
 from io import BytesIO
 
@@ -541,7 +541,7 @@ def fetch_vcards_from_carddav(base_url, username, password, dav_account_name=Non
 
 
 # import html
-# import xml.etree.ElementTree as ET
+# from defusedxml import ElementTree as ET
 
 
 def parse_vcards_with_href(xml_text, base_url):
