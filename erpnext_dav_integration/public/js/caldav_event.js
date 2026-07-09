@@ -226,7 +226,7 @@ frappe.ui.form.on("Event CalDAV Participant", {
 		// When checkbox is toggled, could trigger invitation send
 		let row = locals[cdt][cdn];
 		if (row.send_invitation && !frm.doc.caldav_event_id) {
-			frappe.msgprint("Please connect to CalDAV first before sending invitations");
+			frappe.msgprint(__("Please connect to CalDAV first before sending invitations"));
 			row.send_invitation = 0;
 			frm.refresh_field("caldav_participants_table");
 		}

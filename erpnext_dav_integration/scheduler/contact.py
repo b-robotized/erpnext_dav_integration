@@ -10,6 +10,7 @@ import frappe
 import langcodes
 import requests
 import vobject
+from frappe import _
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth
 
@@ -21,7 +22,7 @@ except ImportError:
 	HAS_PIL = False
 
 
-def get_dav_accounts(user=None):
+def get_dav_accounts(user: str | None = None):
 	filters = {"enabled": 1}
 
 	if user:
@@ -42,7 +43,7 @@ def get_dav_accounts(user=None):
 	)
 
 	if not accounts:
-		frappe.throw("No active DAV Account found")
+		frappe.throw(_("No active DAV Account found"))
 
 	return accounts
 
@@ -107,7 +108,11 @@ gender_map = {"M": "Male", "F": "Female", "O": "Other", "N": "None", "U": "Unkno
 
 @frappe.whitelist()
 def create_and_update_contacts_from_vcf(
-	vcf_content, dav_account_name=None, address_book_url=None, address_book=None, vcard_url=None
+	vcf_content: str,
+	dav_account_name: str | None = None,
+	address_book_url: str | None = None,
+	address_book: str | None = None,
+	vcard_url: str | None = None,
 ):
 	contact_names = []
 
@@ -411,7 +416,7 @@ def synchronize_carddav_contacts():
 	frappe.flags.in_scheduled_job = True
 	dav = frappe.get_doc("DAV Account", {"enabled": 1, "default": 1})
 	if not dav:
-		frappe.throw("No active default DAV Account found for synchronization.")
+		frappe.throw(_("No active default DAV Account found for synchronization."))
 	else:
 		base = (dav.base_url or "").strip().rstrip("/")
 
@@ -455,7 +460,7 @@ def synchronize_carddav_contacts():
 		for row in duplicate_emails:
 			report += f"<tr><td>{frappe.utils.escape_html(row.email_id)}</td><td>{row['COUNT(*)']}</td></tr>"
 		report += "</tbody></table>"
-		frappe.msgprint(report, "Duplicate Emails Found", allow_dangerous_html=True)
+		frappe.msgprint(report, _("Duplicate Emails Found"), allow_dangerous_html=True)
 	frappe.db.commit()
 
 

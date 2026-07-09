@@ -24,10 +24,10 @@ class DAVAccount(Document):
 
 		except Exception as e:
 			frappe.log_error(frappe.get_traceback(), "DAV Address Book Fetch Failed")
-			frappe.msgprint(f"Failed to fetch address books: {e}")
+			frappe.msgprint(_("Failed to fetch address books: {0}").format(e))
 
 	@frappe.whitelist()
-	def discover_calendars(self, skip_filtering=False):
+	def discover_calendars(self, skip_filtering: bool = False):
 		"""Refresh calendar list from CalDAV provider"""
 		from erpnext_dav_integration.webdav_sync.manager import WebDAVManager
 
@@ -104,7 +104,7 @@ class DAVAccount(Document):
 		)
 
 		if response.status_code not in [207, 200]:
-			frappe.throw(f"CardDAV Error: {response.status_code} - {response.text}")
+			frappe.throw(_("CardDAV Error: {0} - {1}").format(response.status_code, response.text))
 
 		root = ET.fromstring(response.content)
 		ns = {"d": "DAV:", "card": "urn:ietf:params:xml:ns:carddav"}
@@ -154,7 +154,7 @@ class DAVAccount(Document):
 
 
 @frappe.whitelist()
-def get_default_address_book(dav_account):
+def get_default_address_book(dav_account: str | None):
 	if not dav_account:
 		return []
 
@@ -172,7 +172,7 @@ def get_default_address_book(dav_account):
 
 
 @frappe.whitelist()
-def get_address_books(dav_account):
+def get_address_books(dav_account: str | None):
 	if not dav_account:
 		return []
 	doc = frappe.get_doc("DAV Account", dav_account)
@@ -202,12 +202,12 @@ def create_address_book(docname, address_book_name):
 	doc = frappe.get_doc("DAV Account", docname)
 
 	if not doc.base_url or not doc.username:
-		frappe.throw("DAV credentials missing")
+		frappe.throw(_("DAV credentials missing"))
 
 	username = doc.username
 	password = get_decrypted_password("DAV Account", doc.name, "app_password")
 	if not password:
-		frappe.throw("DAV credentials missing")
+		frappe.throw(_("DAV credentials missing"))
 
 	base_url = doc.base_url.rstrip("/") + "/"
 
@@ -228,7 +228,7 @@ def create_address_book(docname, address_book_name):
 		None,
 	)
 	if existing_book:
-		frappe.msgprint(f"Address book '{address_book_name}' already exists locally")
+		frappe.msgprint(_("Address book '{0}' already exists locally").format(address_book_name))
 		return True
 
 	headers = {"Content-Type": "application/xml; charset=utf-8"}
@@ -262,7 +262,7 @@ def create_address_book(docname, address_book_name):
 		add_to_child_table = True
 	elif response.status_code == 405:
 		# Already exists on server
-		frappe.msgprint(f"Address book '{address_book_name}' already exists on server")
+		frappe.msgprint(_("Address book '{0}' already exists on server").format(address_book_name))
 
 		existing_child = next(
 			(x for x in doc.dav_address_books if x.url and x.url.rstrip("/") == create_url.rstrip("/")), None
@@ -271,7 +271,9 @@ def create_address_book(docname, address_book_name):
 		if not existing_child:
 			add_to_child_table = True
 	else:
-		frappe.throw(f"Failed to create address book: {response.status_code} - {response.text}")
+		frappe.throw(
+			_("Failed to create address book: {0} - {1}").format(response.status_code, response.text)
+		)
 	proper_url = (
 		create_url.replace(base_url, "/").rstrip("/") if create_url.startswith(base_url) else create_url
 	)
@@ -300,12 +302,12 @@ def delete_address_book(docname, address_book_url):
 	url_to_delete = address_book_url
 
 	if not url_to_delete:
-		frappe.throw("Address book not found")
+		frappe.throw(_("Address book not found"))
 
 	username = doc.username
 	password = get_decrypted_password("DAV Account", doc.name, "app_password")
 	if not password:
-		frappe.throw("DAV credentials missing")
+		frappe.throw(_("DAV credentials missing"))
 
 	headers = {"Content-Type": "application/xml; charset=utf-8"}
 
@@ -317,4 +319,6 @@ def delete_address_book(docname, address_book_url):
 	)
 
 	if response.status_code not in [200, 204]:
-		frappe.throw(f"Failed to delete address book: {response.status_code} - {response.text}")
+		frappe.throw(
+			_("Failed to delete address book: {0} - {1}").format(response.status_code, response.text)
+		)

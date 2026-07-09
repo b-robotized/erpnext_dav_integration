@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -26,9 +27,9 @@ class DAVAddressBook(Document):
 
 	def validate(self):
 		if not self.dav_account:
-			frappe.throw("DAV Account is required for Address Book")
+			frappe.throw(_("DAV Account is required for Address Book"))
 		if not self.dav_addressbook:
-			frappe.throw("DAV Address Book URL is required")
+			frappe.throw(_("DAV Address Book URL is required"))
 		# Ensure uniqueness of dav_addressbook per dav_account
 		existing = frappe.get_all(
 			"DAV AddressBook",
@@ -40,4 +41,4 @@ class DAVAddressBook(Document):
 			limit=1,
 		)
 		if existing:
-			frappe.throw("This DAV Address Book is already linked to the selected DAV Account.")
+			frappe.throw(_("This DAV Address Book is already linked to the selected DAV Account."))

@@ -19,11 +19,13 @@ class CustomEvent(Event):
 			if self.caldav_event_url:
 				if not Manager.validate_dav_url(self.caldav_event_url):
 					frappe.throw(
-						"Event is deleted from calendar or calendar URL is invalid. Please reselect calendar to sync."
+						_(
+							"Event is deleted from calendar or calendar URL is invalid. Please reselect calendar to sync."
+						)
 					)
 			if self.caldav_calendar_url:
 				if not Manager.validate_dav_url(self.caldav_calendar_url):
-					frappe.throw("Selected calendar is invalid. Please reselect calendar to sync.")
+					frappe.throw(_("Selected calendar is invalid. Please reselect calendar to sync."))
 		self.validate_event()
 		if self.create_in_caldav and not self.is_new():
 			self.after_insert()
@@ -104,7 +106,7 @@ class CustomEvent(Event):
 		"""Create new event in CalDAV"""
 
 		if not self.caldav_account:
-			frappe.throw("Please select a calendar account")
+			frappe.throw(_("Please select a calendar account"))
 		if frappe.flags.in_caldav_sync:
 			# Avoid recursive sync loop if create_in_caldav is set on an update
 			return
@@ -116,7 +118,7 @@ class CustomEvent(Event):
 		)
 
 		if not calendar_url:
-			frappe.throw("Calendar not found")
+			frappe.throw(_("Calendar not found"))
 
 		# Create in CalDAV
 		manager = WebDAVManager(self.caldav_account)
@@ -136,9 +138,24 @@ class CustomEvent(Event):
 		self.caldav_card_text = result.get("caldav_card_text")
 		self.caldav_created = frappe.utils.now()
 
-		# Clear sync fields
+		# Clear sync fields and persist them explicitly
 		self.create_in_caldav = 0
-		self.save(ignore_permissions=True)
+		self.db_set(
+			{
+				"caldav_event_id": self.caldav_event_id,
+				"caldav_event_url": self.caldav_event_url,
+				"caldav_uuid": self.caldav_uuid,
+				"caldav_etag": self.caldav_etag,
+				"caldav_sync_status": self.caldav_sync_status,
+				"caldav_status": self.caldav_status,
+				"status": self.status,
+				"caldav_sequence": self.caldav_sequence,
+				"caldav_card_text": self.caldav_card_text,
+				"caldav_created": self.caldav_created,
+				"create_in_caldav": self.create_in_caldav,
+			},
+			update_modified=False,
+		)
 
 	def _sync_to_caldav(self):
 		"""Update existing event in CalDAV"""
@@ -151,6 +168,15 @@ class CustomEvent(Event):
 		self.caldav_sequence = result["sequence"]
 		self.caldav_sync_status = "Connected"
 		self.caldav_card_text = result.get("caldav_card_text")
+		self.db_set(
+			{
+				"caldav_etag": self.caldav_etag,
+				"caldav_sequence": self.caldav_sequence,
+				"caldav_sync_status": self.caldav_sync_status,
+				"caldav_card_text": self.caldav_card_text,
+			},
+			update_modified=False,
+		)
 
 	def validate_event(doc):
 		if doc.is_new():

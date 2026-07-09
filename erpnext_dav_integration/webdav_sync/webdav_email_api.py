@@ -16,6 +16,7 @@ accounts they manage (guarded by System Manager role check).
 from pathlib import PurePosixPath
 
 import frappe
+from frappe import _
 
 from .manager import AttachmentStrategy, WebDAVManager
 
@@ -36,8 +37,9 @@ def _resolve_dav_account(dav_account: str | None = None) -> str:
 		return frappe.db.get_value("DAV Account", {"username": user, "enabled": 1}, "name")
 	else:
 		frappe.throw(
-			"No WebDAV account linked to your profile.  "
-			"Configure your DAV Account with your username to use Cloud Files Feature.",
+			_(
+				"No WebDAV account linked to your profile. Configure your DAV Account with your username to use Cloud Files Feature."
+			),
 			frappe.PermissionError,
 		)
 

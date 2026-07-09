@@ -9,18 +9,18 @@ from frappe import _
 from .manager import WebDAVManager, WebDAVSyncor
 
 
-def check_rate_limit(key, limit=20, seconds=60):
+def check_rate_limit(key: str, limit: int = 20, seconds: int = 60):
 	cache = frappe.cache()
 	current = cache.get_value(key) or 0
 
 	if current >= limit:
-		frappe.throw("Rate limit exceeded. Try again later.")
+		frappe.throw(_("Rate limit exceeded. Try again later."))
 
 	cache.set_value(key, current + 1, expires_in_sec=seconds)
 
 
 @frappe.whitelist()
-def get_calendars(dav_account):
+def get_calendars(dav_account: str):
 	"""Get available calendars for the account"""
 	check_rate_limit(f"user:{frappe.session.user}:get_calendars", 10, 60)
 
@@ -29,12 +29,12 @@ def get_calendars(dav_account):
 
 
 @frappe.whitelist()
-def get_calendar_url(dav_account, calendar_name):
+def get_calendar_url(dav_account: str, calendar_name: str):
 	"""Get calendar URL for a given calendar name"""
 	check_rate_limit(f"user:{frappe.session.user}:get_calendar_url", 10, 60)
 	# Check permission
 	if not frappe.has_permission("DAV Account", "read", dav_account):
-		frappe.throw("No permission", frappe.PermissionError)
+		frappe.throw(_("No permission"), frappe.PermissionError)
 
 	calendar_values = frappe.db.get_value(
 		"DAV Account Calendar",
@@ -43,20 +43,20 @@ def get_calendar_url(dav_account, calendar_name):
 	)
 
 	if not calendar_values:
-		frappe.throw("Calendar not found")
+		frappe.throw(_("Calendar not found"))
 
 	calendar_url, calendar_color = calendar_values
 	if not calendar_url:
-		frappe.throw("Calendar not found")
+		frappe.throw(_("Calendar not found"))
 
 	return calendar_url, calendar_color
 
 
 @frappe.whitelist()
-def refresh_calendar_discovery(dav_account):
+def refresh_calendar_discovery(dav_account: str):
 	"""Force rediscovery of calendars"""
 	if not frappe.has_permission("DAV Account", "write", dav_account):
-		frappe.throw("No permission", frappe.PermissionError)
+		frappe.throw(_("No permission"), frappe.PermissionError)
 
 	manager = WebDAVManager(dav_account)
 
@@ -107,7 +107,7 @@ def enqueue_fetch_events_from_dav_calendar():
 
 
 @frappe.whitelist()
-def sync_with_dav_calendar(event_names):
+def sync_with_dav_calendar(event_names: str | list[str]):
 	"""
 	Hook called on Event save
 	Auto-syncs changes to CalDAV if event is connected
@@ -148,7 +148,7 @@ def sync_with_dav_calendar(event_names):
 # ✨ CREATE IN CALDAV
 # ---------------------------
 @frappe.whitelist()
-def create_caldav_event(event_name, calendar_name):
+def create_caldav_event(event_name: str, calendar_name: str):
 	"""
 	Create new event in CalDAV
 	Called when user clicks "Create in Calendar" button
@@ -213,7 +213,7 @@ def create_caldav_event(event_name, calendar_name):
 
 
 @frappe.whitelist()
-def sync_to_caldav(event_name):
+def sync_to_caldav(event_name: str):
 	"""
 	Manually sync event to CalDAV
 	Called when user clicks "Sync Now" button
@@ -256,7 +256,7 @@ def sync_to_caldav(event_name):
 
 
 @frappe.whitelist()
-def delete_caldav_event(event_name):
+def delete_caldav_event(event_name: str):
 	"""
 	Delete event from CalDAV
 	Called when user clicks "Delete from Calendar" button
@@ -304,7 +304,7 @@ def delete_caldav_event(event_name):
 
 
 @frappe.whitelist()
-def refresh_from_caldav(event_name):
+def refresh_from_caldav(event_name: str):
 	"""
 	Refresh event from CalDAV
 	Called when user clicks "Refresh from Calendar" button
@@ -383,7 +383,7 @@ def refresh_from_caldav(event_name):
 
 
 @frappe.whitelist()
-def unlink_from_caldav(event_name):
+def unlink_from_caldav(event_name: str):
 	"""
 	Disconnect event from CalDAV
 	Called when user clicks "Unlink from Calendar" button
@@ -422,7 +422,7 @@ def unlink_from_caldav(event_name):
 
 
 @frappe.whitelist()
-def send_invitation(event_name, participant_email):
+def send_invitation(event_name: str, participant_email: str):
 	"""
 	Send calendar invitation to participant
 	Called when user checks "Send Invitation" on a participant

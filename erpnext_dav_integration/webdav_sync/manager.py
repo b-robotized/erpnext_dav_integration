@@ -11,6 +11,7 @@ import frappe
 import pybreaker
 import pytz
 import requests
+from frappe import _
 from frappe.utils.password import get_decrypted_password
 from icalendar import Calendar, vCalAddress, vText
 from icalendar import Event as ICalEvent
@@ -211,7 +212,7 @@ class WebDAVManager:
 		"""Download a file and return its raw bytes."""
 		response = self._request("GET", path, headers={"Content-Type": "application/octet-stream"})
 		if response.status_code != 200:
-			frappe.throw(f"WebDAV GET failed [{path}]: {response.status_code}")
+			frappe.throw(_(f"WebDAV GET failed [{path}]: {response.status_code}"))
 		return response.content
 
 	def get_file_stream(self, path: str):
@@ -247,9 +248,9 @@ class WebDAVManager:
 		response = self._request("PUT", path, data=content, headers=headers)
 
 		if response.status_code == 412:
-			frappe.throw("File was modified by another client.  Refresh the cloud version and retry.")
+			frappe.throw(_("File was modified by another client.  Refresh the cloud version and retry."))
 		if response.status_code not in (201, 204):
-			frappe.throw(f"WebDAV PUT failed [{path}]: {response.status_code}\n{response.text}")
+			frappe.throw(_(f"WebDAV PUT failed [{path}]: {response.status_code}\n{response.text}"))
 
 		return response.headers.get("ETag", "").strip('"')
 
@@ -272,7 +273,7 @@ class WebDAVManager:
 			self.mkcol(parent)
 			return self.mkcol(path)
 		if response.status_code not in (200, 201):
-			frappe.throw(f"MKCOL failed [{path}]: {response.status_code}")
+			frappe.throw(_(f"MKCOL failed [{path}]: {response.status_code}"))
 
 		return True
 
@@ -284,7 +285,7 @@ class WebDAVManager:
 		if response.status_code == 404:
 			return False
 		if response.status_code not in (200, 204):
-			frappe.throw(f"WebDAV DELETE failed [{path}]: {response.status_code}")
+			frappe.throw(_(f"WebDAV DELETE failed [{path}]: {response.status_code}"))
 		return True
 
 	# ── COPY ──────────────────────────────────────────────────────────────────
@@ -297,7 +298,7 @@ class WebDAVManager:
 		}
 		response = self._request("COPY", src, headers=headers)
 		if response.status_code not in (201, 204):
-			frappe.throw(f"WebDAV COPY failed [{src} → {dst}]: {response.status_code}")
+			frappe.throw(_(f"WebDAV COPY failed [{src} -> {dst}]: {response.status_code}"))
 		return True
 
 	# ── MOVE ──────────────────────────────────────────────────────────────────
@@ -310,7 +311,7 @@ class WebDAVManager:
 		}
 		response = self._request("MOVE", src, headers=headers)
 		if response.status_code not in (201, 204):
-			frappe.throw(f"WebDAV MOVE failed [{src} → {dst}]: {response.status_code}")
+			frappe.throw(_(f"WebDAV MOVE failed [{src} -> {dst}]: {response.status_code}"))
 		return True
 
 	# ── Nextcloud share-link API ──────────────────────────────────────────────
@@ -376,8 +377,9 @@ class WebDAVManager:
 		)
 		if response.status_code not in (200, 201):
 			frappe.throw(
-				f"Nextcloud share creation failed [{normalized_path}]: "
-				f"{response.status_code}\n{response.text}"
+				_(
+					f"Nextcloud share creation failed [{normalized_path}]: {response.status_code}\n{response.text}"
+				)
 			)
 
 		payload = response.json()
@@ -740,7 +742,7 @@ class WebDAVManager:
 		calendars = self.discover_calendars()
 
 		for cal in calendars:
-			frappe.msgprint(f"Syncing calendar: {cal['name']} ({cal['url']})")
+			frappe.msgprint(_("Syncing calendar: {0} ({1})").format(cal["name"], cal["url"]))
 			events = self.fetch_events_from_calendar(cal["url"])
 
 			# ✅ STEP 1: Sync existing events
@@ -882,7 +884,7 @@ class WebDAVManager:
 			response = requests.request(
 				"PUT", url, headers=headers, data=ical_data, auth=self.auth, timeout=30
 			)
-			frappe.msgprint(f"Creating event in calendar: {calendar_url}", alert=True)
+			frappe.msgprint(_("Creating event in calendar: {0}").format(calendar_url), alert=True)
 		except Exception as e:
 			error_msg = f"CalDAV create request failed: {e!s}"
 			frappe.log_error(error_msg)
@@ -890,7 +892,7 @@ class WebDAVManager:
 
 		# Handle response
 		if response.status_code not in [201, 204]:
-			error_msg = f"Failed to create event in CalDAV: {response.status_code}\n{response.text}"
+			error_msg = _(f"Failed to create event in CalDAV: {response.status_code}\n{response.text}")
 			frappe.log_error(error_msg)
 			frappe.throw(error_msg)
 
@@ -920,10 +922,10 @@ class WebDAVManager:
 		# 🟢 NEW DOC → treat as changed OR skip
 
 		if not event_doc.caldav_event_id:
-			frappe.throw("Event not connected to CalDAV")
+			frappe.throw(_("Event not connected to CalDAV"))
 
 		if not event_doc.caldav_event_url:
-			frappe.throw("CalDAV URL not found")
+			frappe.throw(_("CalDAV URL not found"))
 
 		# 🔴 FIX: Correct sequence handling
 		sequence = (event_doc.caldav_sequence or 0) + 1
@@ -1024,7 +1026,7 @@ class WebDAVManager:
 
 		# Handle other errors
 		if response.status_code not in [201, 204]:
-			error_msg = f"CalDAV update failed: {response.status_code}\n{response.text}"
+			error_msg = _(f"CalDAV update failed: {response.status_code}\n{response.text}")
 			frappe.log_error(error_msg)
 			frappe.throw(error_msg)
 
@@ -1048,7 +1050,7 @@ class WebDAVManager:
 		"""
 
 		if not event_doc.caldav_event_url:
-			frappe.throw("CalDAV URL not found")
+			frappe.throw(_("CalDAV URL not found"))
 
 		# 🔴 CRITICAL FIX: Add If-Match header for safety
 		url = f"{self.base_url}{event_doc.caldav_event_url}"
@@ -1078,7 +1080,7 @@ class WebDAVManager:
 
 		# Handle other errors
 		if response.status_code not in [204, 200]:
-			error_msg = f"Failed to delete event from CalDAV: {response.status_code}\n{response.text}"
+			error_msg = _(f"Failed to delete event from CalDAV: {response.status_code}\n{response.text}")
 			frappe.log_error(error_msg)
 			frappe.throw(error_msg)
 
@@ -1260,7 +1262,7 @@ class AttachmentStrategy:
 		elif mode == "link":
 			return self._attach_link(cloud_path, doctype, docname, filename)
 		else:
-			frappe.throw(f"AttachmentStrategy: unknown mode '{mode}'.  Use 'copy' or 'link'.")
+			frappe.throw(_(f"AttachmentStrategy: unknown mode '{mode}'.  Use 'copy' or 'link'."))
 
 	# ── copy strategy ─────────────────────────────────────────────────────────
 

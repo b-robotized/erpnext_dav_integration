@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -26,9 +27,9 @@ class DAVCalendar(Document):
 
 	def validate(self):
 		if not self.dav_account:
-			frappe.throw("DAV Account is required for Calendar")
+			frappe.throw(_("DAV Account is required for Calendar"))
 		if not self.dav_calendar:
-			frappe.throw("DAV Calendar URL is required")
+			frappe.throw(_("DAV Calendar URL is required"))
 		# Ensure uniqueness of dav_calendar per dav_account
 		existing = frappe.get_all(
 			"DAV Calendar",
@@ -40,4 +41,4 @@ class DAVCalendar(Document):
 			limit=1,
 		)
 		if existing:
-			frappe.throw("This DAV Calendar is already linked to the selected DAV Account.")
+			frappe.throw(_("This DAV Calendar is already linked to the selected DAV Account."))
