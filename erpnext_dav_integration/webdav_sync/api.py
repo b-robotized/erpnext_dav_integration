@@ -84,7 +84,6 @@ def refresh_calendar_discovery(dav_account):
 def fetch_events_from_dav_calendar():
 	frappe.flags.in_caldav_sync = True  # Set a flag to indicate sync is in progress
 	account = frappe.get_doc("DAV Account", {"enabled": 1, "default": 1})
-
 	if not account:
 		frappe.throw(_("No active DAV Account with default calendar found"))
 	else:

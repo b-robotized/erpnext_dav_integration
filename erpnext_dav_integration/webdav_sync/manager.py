@@ -490,7 +490,7 @@ class WebDAVManager:
 				continue
 			if (
 				not any(
-					normalize_url(cal.dav_calendar_url.strip()) == href.strip("/")
+					normalize_url(cal.dav_calendar_url) == normalize_url(href)
 					for cal in dav_calendar_data
 				)
 				and not skip_filtering
@@ -673,6 +673,7 @@ class WebDAVManager:
 		calendars = self.discover_calendars()
 
 		for cal in calendars:
+			frappe.msgprint(f"Syncing calendar: {cal['name']} ({cal['url']})")
 			events = self.fetch_events_from_calendar(cal["url"])
 
 			# ✅ STEP 1: Sync existing events
