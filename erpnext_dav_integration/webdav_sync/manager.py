@@ -1,7 +1,7 @@
 import mimetypes
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import PurePosixPath
 from urllib.parse import quote, unquote, urlparse
 from uuid import uuid4
@@ -51,7 +51,7 @@ class WebDAVManager:
 		self.auth = HTTPBasicAuth(self.username, self.password)
 		self.rate_limiter = RateLimiter(rate=5, per=1)
 		expire_days = int(self.dav_account.default_share_link_expire_in or 0)
-		self.file_expire_date = datetime.now(datetime.timezone.utc) + timedelta(days=expire_days)
+		self.file_expire_date = datetime.now(timezone.utc) + timedelta(days=expire_days)
 
 		# Load CalDAV sync window from DAV Settings singleton
 		try:
@@ -593,7 +593,7 @@ class WebDAVManager:
 		return url.rstrip("/")
 
 	def _get_caldav_time_range(self):
-		now = datetime.now(datetime.timezone.utc)
+		now = datetime.now(timezone.utc)
 		start = now - timedelta(days=self.caldav_sync_past_days)
 		end = now + timedelta(days=self.caldav_sync_future_days)
 		return start.strftime("%Y%m%dT%H%M%SZ"), end.strftime("%Y%m%dT%H%M%SZ")
@@ -812,9 +812,9 @@ class WebDAVManager:
 
 		# Core event data
 		vevent.add("uid", event_uuid)
-		vevent.add("dtstamp", datetime.now(datetime.timezone.utc))
-		vevent.add("created", datetime.now(datetime.timezone.utc))
-		vevent.add("last-modified", datetime.now(datetime.timezone.utc))
+		vevent.add("dtstamp", datetime.now(timezone.utc))
+		vevent.add("created", datetime.now(timezone.utc))
+		vevent.add("last-modified", datetime.now(timezone.utc))
 		vevent.add("sequence", 0)
 
 		# Event details - FIX: Use correct field name
@@ -944,11 +944,11 @@ class WebDAVManager:
 
 		# Core fields (DO NOT CHANGE UID)
 		vevent.add("uid", event_doc.caldav_event_id)
-		vevent.add("dtstamp", datetime.now(datetime.timezone.utc))
+		vevent.add("dtstamp", datetime.now(timezone.utc))
 		vevent.add(
-			"created", self._to_utc_datetime(event_doc.caldav_created) or datetime.now(datetime.timezone.utc)
+			"created", self._to_utc_datetime(event_doc.caldav_created) or datetime.now(timezone.utc)
 		)
-		vevent.add("last-modified", datetime.now(datetime.timezone.utc))
+		vevent.add("last-modified", datetime.now(timezone.utc))
 		vevent.add("sequence", sequence)
 
 		# Basic details
@@ -1108,7 +1108,7 @@ class WebDAVManager:
 			try:
 				system_tz = ZoneInfo(frappe.utils.get_system_timezone())
 			except Exception:
-				system_tz = datetime.now().astimezone().tzinfo or datetime.timezone.utc
+				system_tz = datetime.now().astimezone().tzinfo or timezone.utc
 
 			# ---------------------------
 			# 🔤 String → datetime
@@ -1133,12 +1133,11 @@ class WebDAVManager:
 			# ---------------------------
 			if value.tzinfo:
 				# Already timezone-aware → convert to UTC
-				value = value.astimezone(datetime.timezone.utc)
+				value = value.astimezone(timezone.utc)
 			else:
 				# 🔴 CRITICAL FIX:
-				value = value.replace(tzinfo=system_tz).astimezone(datetime.timezone.utc)
-
-			return value
+				value = value.replace(tzinfo=system_tz).astimezone(timezone.utc)
+				return value
 
 		except Exception as e:
 			frappe.log_error(f"_to_utc_datetime failed: {value} -> {e!s}")
@@ -1514,7 +1513,7 @@ class WebDAVSyncor:
 		try:
 			system_tz = ZoneInfo(frappe.utils.get_system_timezone())
 		except Exception:
-			system_tz = datetime.now().astimezone().tzinfo or datetime.timezone.utc
+			system_tz = datetime.now().astimezone().tzinfo or timezone.utc
 
 		# ---------------------------
 		# 📅 If already datetime/date
@@ -1529,7 +1528,7 @@ class WebDAVSyncor:
 				value = value.astimezone(system_tz)
 			else:
 				# assume UTC if naive (CalDAV usually sends UTC or TZ-aware)
-				value = value.replace(tzinfo=datetime.timezone.utc).astimezone(system_tz)
+				value = value.replace(tzinfo=timezone.utc).astimezone(system_tz)
 
 			return value.replace(tzinfo=None)
 
@@ -1542,7 +1541,7 @@ class WebDAVSyncor:
 			if dt.tzinfo is not None:
 				dt = dt.astimezone(system_tz)
 			else:
-				dt = dt.replace(tzinfo=datetime.timezone.utc).astimezone(system_tz)
+				dt = dt.replace(tzinfo=timezone.utc).astimezone(system_tz)
 
 			return dt.replace(tzinfo=None)
 
