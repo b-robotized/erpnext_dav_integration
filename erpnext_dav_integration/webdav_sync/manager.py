@@ -1400,7 +1400,8 @@ class WebDAVSyncor:
 		)
 
 		# 🧠 Skip unchanged events (ETag optimization)
-		if existing and existing.caldav_etag == caldav_event.get("etag"):
+		etag = (caldav_event.get("etag") or "").strip('"')
+		if existing and existing.caldav_etag == etag:
 			return frappe.get_doc("Event", existing.name)
 
 		# 📄 Create or load
@@ -1428,14 +1429,15 @@ class WebDAVSyncor:
 		event.caldav_account = dav_account.name
 		event.caldav_event_url = caldav_event["caldav_url"]
 		event.caldav_calendar_url = calendar_url
-		event.caldav_etag = caldav_event.get("etag").strip('"')
+		event.caldav_etag = etag
 		event.caldav_sync_status = "Connected"
 		event.dav_calendar = frappe.db.get_value(
 			"DAV Calendar", {"dav_account": dav_account.name, "dav_calendar": calendar_url}, "name"
 		)
-		event.caldav_status = caldav_event.get("status").title()
+		event.caldav_status = (caldav_event.get("status") or "").title()
 		# set organizer_email for backward compatibility
-		event.caldav_organizer = caldav_event.get("organizer").replace("mailto:", "")
+		organizer = (caldav_event.get("organizer") or "")
+		event.caldav_organizer = organizer.replace("mailto:", "")
 		event.caldav_organizer_name = caldav_event.get("organizer_cn") or event.caldav_organizer
 		event.create_in_caldav = 0
 
