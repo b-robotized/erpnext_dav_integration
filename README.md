@@ -152,7 +152,7 @@ bench --site your-site.com clear-cache
 2. Navigate to Calendar section
 
 #### Step 2: Discover Calendars
-1. Click **Update Calendar List**
+1. Click **Discover Calendars**
 2. Create a `DAV Calendar` document for each calendar in the list under the default DAV Account.
 3. Set the default DAV Calendar in a `User Permission` record for each user who needs access.
 
