@@ -83,18 +83,17 @@ def refresh_calendar_discovery(dav_account: str):
 
 def fetch_events_from_dav_calendar():
 	frappe.flags.in_caldav_sync = True  # Set a flag to indicate sync is in progress
-	account = frappe.get_doc("DAV Account", {"enabled": 1, "default": 1})
-	if not account:
-		frappe.throw(_("No active DAV Account with default calendar found"))
-	else:
+	if frappe.db.exists("DAV Account", {"enabled": 1, "default": 1}):
+		account = frappe.get_doc("DAV Account", {"enabled": 1, "default": 1})
 		manager = WebDAVManager(account.name)
 
 		try:
 			manager.sync_caldav_to_erpnext()
 		except Exception as e:
 			frappe.log_error(str(e))
-
-		time.sleep(2)  # 🔴 throttle between accounts
+	else:
+		frappe.log_error("No enabled DAV Account found for sync.")
+		frappe.throw(_("No enabled DAV Account found for sync."))
 
 
 @frappe.whitelist()
