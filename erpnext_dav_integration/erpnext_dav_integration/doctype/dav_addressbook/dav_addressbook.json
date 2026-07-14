@@ -39,15 +39,15 @@
   {
    "fieldname": "dav_addressbook_url",
    "fieldtype": "Data",
-   "hidden": 1,
    "label": "DAV AddressBook Url",
-   "length": 500
+   "length": 500,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-06 16:40:52.862754",
+ "modified": "2026-07-14 15:39:50.604434",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV AddressBook",
