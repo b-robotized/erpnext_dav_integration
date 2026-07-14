@@ -208,13 +208,13 @@
    "default": "10",
    "fieldname": "default_share_link_expire_in",
    "fieldtype": "Int",
-   "label": "Default Share Link Expire In"
+   "label": "Default Share Link Expire In (Days)"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-02 10:59:32.175864",
+ "modified": "2026-07-14 17:27:22.042864",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV Account",
