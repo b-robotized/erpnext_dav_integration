@@ -15,23 +15,5 @@ frappe.listview_settings["Contact"] = {
 				});
 			});
 		});
-		listview.page.add_inner_button("Delete Trashed Contacts", function () {
-			frappe.confirm(
-				"Are you sure you want to permanently delete all trashed contacts? This action cannot be undone.",
-				function () {
-					frappe.call({
-						method: "erpnext_dav_integration.scheduler.contact.deletion_of_trashed_contacts",
-						freeze: true,
-						freeze_message: "Deleting trashed contacts...",
-						callback: function (r) {
-							if (r.message) {
-								frappe.msgprint("Trashed contacts deleted successfully");
-								listview.refresh();
-							}
-						},
-					});
-				}
-			);
-		});
 	},
 };

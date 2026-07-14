@@ -33,8 +33,8 @@ def _resolve_dav_account(dav_account: str | None = None) -> str:
 	"""
 	# Look up via Employee → username
 	user = frappe.session.user
-	if frappe.db.exists("DAV Account", {"username": user, "enabled": 1}):
-		return frappe.db.get_value("DAV Account", {"username": user, "enabled": 1}, "name")
+	if frappe.db.exists("DAV Account", {"username": user, "enabled": 1}) or frappe.db.exists("DAV Account", {"user": user, "enabled": 1}):
+		return frappe.db.get_value("DAV Account", {"username": user, "enabled": 1}, "name") or frappe.db.get_value("DAV Account", {"user": user, "enabled": 1}, "name")
 	else:
 		frappe.throw(
 			_(

@@ -945,9 +945,7 @@ class WebDAVManager:
 		# Core fields (DO NOT CHANGE UID)
 		vevent.add("uid", event_doc.caldav_event_id)
 		vevent.add("dtstamp", datetime.now(timezone.utc))
-		vevent.add(
-			"created", self._to_utc_datetime(event_doc.caldav_created) or datetime.now(timezone.utc)
-		)
+		vevent.add("created", self._to_utc_datetime(event_doc.caldav_created) or datetime.now(timezone.utc))
 		vevent.add("last-modified", datetime.now(timezone.utc))
 		vevent.add("sequence", sequence)
 

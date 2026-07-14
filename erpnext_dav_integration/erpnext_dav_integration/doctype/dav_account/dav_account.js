@@ -91,36 +91,3 @@ frappe.ui.form.on("DAV Account", {
 		});
 	},
 });
-
-frappe.ui.form.on("DAV Address Book", {
-	before_dav_address_books_remove(frm, cdt, cdn) {
-		const row = locals[cdt][cdn];
-		// confirmation dialog before deleting the address book
-		frappe.confirm(
-			"Are you sure you want to delete this address book? This action cannot be undone.",
-			function () {
-				// User clicked "Yes"
-				delete_address_book(frm, row);
-			},
-			function () {
-				frm.reload_doc();
-			}
-		);
-	},
-});
-
-function delete_address_book(frm, row) {
-	frappe.call({
-		method: "erpnext_dav_integration.erpnext_dav_integration.doctype.dav_account.dav_account.delete_address_book",
-		args: {
-			docname: frm.doc.name,
-			address_book_url: row.url,
-		},
-		callback: function (r) {
-			if (!r.exc) {
-				frappe.msgprint("Address Book Deleted Successfully");
-				frm.save();
-			}
-		},
-	});
-}
