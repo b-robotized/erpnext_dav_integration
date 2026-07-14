@@ -641,7 +641,7 @@
    "name": "Event-caldav_organizer_name",
    "no_copy": 0,
    "non_negative": 0,
-   "options": "Name",
+   "options": "",
    "owner": "Administrator",
    "permlevel": 0,
    "placeholder": null,
