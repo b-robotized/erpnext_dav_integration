@@ -1436,7 +1436,7 @@ class WebDAVSyncor:
 		)
 		event.caldav_status = (caldav_event.get("status") or "").title()
 		# set organizer_email for backward compatibility
-		organizer = (caldav_event.get("organizer") or "")
+		organizer = caldav_event.get("organizer") or ""
 		event.caldav_organizer = organizer.replace("mailto:", "")
 		event.caldav_organizer_name = caldav_event.get("organizer_cn") or event.caldav_organizer
 		event.create_in_caldav = 0
