@@ -99,18 +99,32 @@ bench --site your-site.com install-app erpnext_dav_integration
 bench --site your-site.com migrate
 ```
 
-### Step 2: Verify Installation
+### Step 2: Configure Role Permissions
+After installation, add the required permission rules in ERPNext so the relevant roles can access the required DocTypes at Permission Level 2:
+
+1. Go to Role Permission Manager.
+2. Select the Employee DocType.
+3. Click Add a New Rule.
+4. In the dialog, choose HR Manager as the Role, set Perm Level to 2, and click Add.
+5. Repeat the same process for the following rules:
+   - Project DocType → Project Manager → Perm Level 2
+   - Employee DocType → HR Manager → Perm Level 2
+   - Contract DocType → HR Manager → Perm Level 2
+   - Contract DocType → Purchase Manager → Perm Level 2
+   - Contract DocType → Sales Manager → Perm Level 2
+
+### Step 3: Verify Installation
 1. Go to ERPNext
 2. Search "DAV Account"
 3. Confirm list view is available
 
-### Step 3: Enable Scheduler
+### Step 4: Enable Scheduler
 ```bash
 bench --site your-site.com show-config scheduler
 bench restart
 ```
 
-### Step 4: Clear Cache
+### Step 5: Clear Cache
 ```bash
 bench --site your-site.com clear-cache
 ```
