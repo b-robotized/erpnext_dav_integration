@@ -99,18 +99,32 @@ bench --site your-site.com install-app erpnext_dav_integration
 bench --site your-site.com migrate
 ```
 
-### Step 2: Verify Installation
+### Step 2: Configure Role Permissions
+After installation, add the required permission rules in ERPNext so the relevant roles can access the required DocTypes at Permission Level 2:
+
+1. Go to Role Permission Manager.
+2. Select the Employee DocType.
+3. Click Add a New Rule.
+4. In the dialog, choose HR Manager as the Role, set Perm Level to 2, and click Add.
+5. Repeat the same process for the following rules:
+   - Project DocType → Project Manager → Perm Level 2
+   - Employee DocType → HR Manager → Perm Level 2
+   - Contract DocType → HR Manager → Perm Level 2
+   - Contract DocType → Purchase Manager → Perm Level 2
+   - Contract DocType → Sales Manager → Perm Level 2
+
+### Step 3: Verify Installation
 1. Go to ERPNext
 2. Search "DAV Account"
 3. Confirm list view is available
 
-### Step 3: Enable Scheduler
+### Step 4: Enable Scheduler
 ```bash
 bench --site your-site.com show-config scheduler
 bench restart
 ```
 
-### Step 4: Clear Cache
+### Step 5: Clear Cache
 ```bash
 bench --site your-site.com clear-cache
 ```
@@ -136,9 +150,14 @@ bench --site your-site.com clear-cache
 | App Password | Secure password | •••••••• |
 | Default Address Book URL | Base CardDAV path | /remote.php/dav/addressbooks |
 
+> Note: CardDAV and CalDAV synchronization only use the default enabled DAV Account. Other DAV accounts are ignored for contact/calendar sync.
+
 #### Step 3: Discover Address Books
 1. Click **Update Address Book List**
-2. Select default address book
+2. Create a `DAV Addressbook` document for each discovered address book under the default DAV Account.
+3. Set the default DAV Addressbook in a `User Permission` record for each user who needs access.
+
+> Note: It is recommended to create all `DAV Addressbook` docs for each address book under the default DAV Account.
 
 ### Creating a DAV Calendar
 
@@ -147,8 +166,24 @@ bench --site your-site.com clear-cache
 2. Navigate to Calendar section
 
 #### Step 2: Discover Calendars
-1. Click **Update Calendar List**
-2. Select default calendar
+1. Click **Discover Calendars**
+2. Create a `DAV Calendar` document for each calendar in the list under the default DAV Account.
+3. Set the default DAV Calendar in a `User Permission` record for each user who needs access.
+
+> Note: It is recommended to create all `DAV Calendar` docs for each calendar list under the default DAV Account.
+
+### CalDAV Sync Window Settings
+
+The sync window for calendar events is configured in the `DAV Settings` DocType. These values control how far backwards and forwards the system fetches events during CalDAV synchronization:
+
+- `CALDAV Sync Past Days` — number of days before the current date to include when fetching events.
+- `CALDAV Sync Future Days` — number of days after the current date to include when fetching events.
+
+Defaults:
+- `CALDAV Sync Past Days`: 30
+- `CALDAV Sync Future Days`: 365
+
+These settings are read during event sync and affect scheduled syncs as well as manual calendar discovery.
 
 ### Contact Mapping
 
@@ -265,6 +300,55 @@ bench --site your-site.com clear-cache
 ### Scheduled Sync
 - **00:00** → Full sync (contacts & events)
 - **00:15** → Incremental sync + deletion (contacts & events)
+
+---
+
+## Nextcloud Files (Cloud storage)
+
+This app includes an integrated Nextcloud/ WebDAV file browser that lets users:
+- Attach cloud files directly to emails and other documents.
+- Insert public share links (Nextcloud public shares) into email bodies.
+- Select and store Nextcloud folders on `Project` and `Employee` records.
+
+How it works
+- The File Browser button appears in the Email composer as **Cloud Storage**.
+- When opened it lists your Nextcloud files and folders (via WebDAV PROPFIND).
+- Users can select files to attach (the app downloads the file and creates an ERPNext `File` record), or create a public share link and insert it into the email body.
+- Project and Employee forms have buttons to "Select Nextcloud Folder" and "Open Nextcloud Folder" to link folders to those records.
+
+Setup / Requirements
+1. Create a `DAV Account` record in ERPNext for your Nextcloud account:
+   - `Account Name`: descriptive name (e.g. Nextcloud - alice)
+   - `Base URL`: https://your-nextcloud.example.com
+   - `Username`: your Nextcloud username (must match your ERPNext user to use the Cloud Storage button)
+   - `Password` / `App Password`: app password recommended for security
+   - Enable the account and save.
+
+2. Link the `DAV Account` to the ERPNext user by creating a `DAV Account` where the `username` field matches the Frappe user (the API resolves the account for the current user).
+
+3. Ensure the Nextcloud user has permission to create public shares if you want "Insert share link" to work.
+
+
+User flow examples
+- Attaching a cloud file to an email:
+  1. Open the email composer and click **Cloud Storage**.
+  2. Browse to a folder and select one or more files.
+  3. Click **Attach file** to copy the file into ERPNext attachments.
+
+- Inserting a Nextcloud share link:
+  1. Select one or more files in the Cloud Storage browser.
+  2. Click **Insert share link** and optionally set an expiry date.
+  3. The link is inserted into the email body (or composer field).
+
+- Linking a Nextcloud folder to an Employee or Project:
+  1. Open the `Employee` or `Project` record.
+  2. Click **Select Nextcloud Folder** (or Select Employee Private Folder / Select Company Shared Folder).
+  3. Choose a folder and the record will store a Files-app URL and DAV path.
+
+Security & permissions
+- The integration resolves the DAV account from the ERPNext user; ensure `DAV Account.username` matches the Frappe user.
+- Attachments downloaded from Nextcloud are stored per ERPNext's File permissions (private/public as configured).
+- Share links are created using Nextcloud's OCS share API and inherit Nextcloud's sharing permissions.
 
 ---
 

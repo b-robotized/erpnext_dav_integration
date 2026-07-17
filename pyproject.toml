@@ -13,7 +13,8 @@ dependencies = [
     "langcodes",
     "language-data",
     "icalendar",
-    "pybreaker"
+    "pybreaker",
+    "defusedxml~=0.7.1"
 ]
 
 [build-system]

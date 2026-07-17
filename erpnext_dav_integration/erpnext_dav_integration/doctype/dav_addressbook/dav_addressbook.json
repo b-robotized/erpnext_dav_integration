@@ -8,7 +8,8 @@
  "field_order": [
   "dav_account",
   "column_break_kvho",
-  "dav_addressbook"
+  "dav_addressbook",
+  "dav_addressbook_url"
  ],
  "fields": [
   {
@@ -34,12 +35,19 @@
    "no_copy": 1,
    "reqd": 1,
    "set_only_once": 1
+  },
+  {
+   "fieldname": "dav_addressbook_url",
+   "fieldtype": "Data",
+   "label": "DAV AddressBook Url",
+   "length": 500,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-10 13:25:31.919534",
+ "modified": "2026-07-14 15:39:50.604434",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV AddressBook",

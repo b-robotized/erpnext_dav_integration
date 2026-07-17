@@ -1,68 +1,91 @@
 # Copyright (c) 2026, b»robotized group and contributors
 # For license information, please see license.txt
 
-from xml.etree import ElementTree as ET
-
 import frappe
-from frappe import _
 import requests
+from defusedxml import ElementTree as ET
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils.password import get_decrypted_password
 from requests.auth import HTTPBasicAuth
 
+
 class DAVAccount(Document):
-    def validate(self):
-        self.sync_address_books_on_save()
-    def sync_address_books_on_save(self):
-        # If already populated, skip
-        if self.dav_address_books:
-            return
-        try:
-            self.fetch_and_store_address_books()
-            
-        except Exception as e:
-            frappe.log_error(frappe.get_traceback(), "DAV Address Book Fetch Failed")
-            frappe.msgprint(f"Failed to fetch address books: {e}")
-    @frappe.whitelist()
-    def discover_calendars(self):
-        """Refresh calendar list from CalDAV provider"""
-        from erpnext_dav_integration.caldav_sync.manager import WebDAVManager
-        manager = WebDAVManager(self.name)
-        try:
-            # Discover calendar home
-            if not self.default_calendar_url:
-                calendar_home = manager.get_calendar_home_set()
-                self.default_calendar_url = calendar_home
-            # Discover calendars
-            calendars = manager.discover_calendars()
-            # Update available calendars
-            self.available_calendars = []
-            for cal in calendars:
-                self.append('available_calendars', {
-	                'calendar_url': cal['url'],
-	                'display_name': cal['name'],
-					'calendar_color': cal.get('color', '#000000'),
-	                'sync_enabled': 1,
-					'timezone': cal.get('timezone')
-				})
-            self.save(ignore_permissions=True)
-            
-        except Exception as e:
-            frappe.msgprint(
-	            _("Error discovering calendars: {0}").format(str(e)),
-	            alert=True,
-	            indicator='red'
-            )
-    def fetch_and_store_address_books(self):
-        base_url = self.base_url.rstrip("/")
-        username = self.username
-        password = get_decrypted_password("DAV Account", self.name, "app_password")
+	def validate(self):
+		self.sync_address_books_on_save()
 
-        url = f"{base_url}/{self.default_addressbook_url.strip().lstrip('/')}/users/{username}/"
+	def sync_address_books_on_save(self):
+		# If already populated, skip
+		if self.dav_address_books:
+			return
+		try:
+			self.fetch_and_store_address_books()
 
-        headers = {"Depth": "1", "Content-Type": "application/xml"}
+		except Exception as e:
+			frappe.log_error(frappe.get_traceback(), "DAV Address Book Fetch Failed")
+			frappe.msgprint(_("Failed to fetch address books: {0}").format(str(e)))
 
-        body = """<?xml version="1.0" encoding="UTF-8"?>
+	@frappe.whitelist()
+	def discover_calendars(self, skip_filtering: bool = False):
+		"""Refresh calendar list from CalDAV provider"""
+		from erpnext_dav_integration.webdav_sync.manager import WebDAVManager
+
+		manager = WebDAVManager(self.name)
+		try:
+			# Discover calendar home
+			if not self.default_calendar_url:
+				calendar_home = manager.get_calendar_home_set()
+				self.default_calendar_url = calendar_home
+			# Discover calendars
+			calendars = manager.discover_calendars(skip_filtering=skip_filtering)
+			# Sync available calendars without dropping existing rows entirely
+			existing_calendars = {row.calendar_url.rstrip("/"): row for row in self.available_calendars}
+			active_calendar_urls = set()
+
+			for cal in calendars:
+				calendar_url = cal["url"]
+				normalized_url = calendar_url.rstrip("/")
+				active_calendar_urls.add(normalized_url)
+
+				if normalized_url in existing_calendars:
+					row = existing_calendars[normalized_url]
+					row.calendar_url = calendar_url
+					row.display_name = cal["name"]
+					row.calendar_color = cal.get("color", "#000000")
+					row.timezone = cal.get("timezone")
+				else:
+					self.append(
+						"available_calendars",
+						{
+							"calendar_url": calendar_url,
+							"display_name": cal["name"],
+							"calendar_color": cal.get("color", "#000000"),
+							"enable_sync": 1,
+							"timezone": cal.get("timezone"),
+						},
+					)
+
+			# Remove calendars that no longer exist on the provider
+			self.available_calendars = [
+				row
+				for row in self.available_calendars
+				if row.calendar_url and row.calendar_url.rstrip("/") in active_calendar_urls
+			]
+			self.save(ignore_permissions=True)
+
+		except Exception as e:
+			frappe.msgprint(_("Error discovering calendars: {0}").format(str(e)), alert=True, indicator="red")
+
+	def fetch_and_store_address_books(self):
+		base_url = self.base_url.rstrip("/")
+		username = self.username
+		password = get_decrypted_password("DAV Account", self.name, "app_password")
+
+		url = f"{base_url}/{self.default_addressbook_url.strip().lstrip('/')}/users/{username}/"
+
+		headers = {"Depth": "1", "Content-Type": "application/xml"}
+
+		body = """<?xml version="1.0" encoding="UTF-8"?>
         <d:propfind xmlns:d="DAV:" xmlns:card="urn:ietf:params:xml:ns:carddav">
             <d:prop>
                 <d:displayname />
@@ -71,70 +94,66 @@ class DAVAccount(Document):
         </d:propfind>
         """
 
-        response = requests.request(
-            "PROPFIND",
-            url,
-            data=body,
-            headers=headers,
-            auth=HTTPBasicAuth(username, password),
-        )
+		response = requests.request(
+			"PROPFIND",
+			url,
+			data=body,
+			headers=headers,
+			auth=HTTPBasicAuth(username, password),
+		)
 
-        if response.status_code not in [207, 200]:
-            frappe.throw(f"CardDAV Error: {response.status_code} - {response.text}")
+		if response.status_code not in [207, 200]:
+			frappe.throw(_("CardDAV Error: {0} - {1}").format(response.status_code, response.text))
 
-        root = ET.fromstring(response.content)
-        ns = {
-            "d": "DAV:",
-            "card": "urn:ietf:params:xml:ns:carddav"
-        }
-        server_books = {}
-        for resp in root.findall("d:response", ns):
-            href = resp.find("d:href", ns)
-            displayname = resp.find(".//d:displayname", ns)
-            resourcetype = resp.find(".//d:resourcetype", ns)
-            if href is None or resourcetype is None:
-                continue
+		root = ET.fromstring(response.content)
+		ns = {"d": "DAV:", "card": "urn:ietf:params:xml:ns:carddav"}
+		server_books = {}
+		for resp in root.findall("d:response", ns):
+			href = resp.find("d:href", ns)
+			displayname = resp.find(".//d:displayname", ns)
+			resourcetype = resp.find(".//d:resourcetype", ns)
+			if href is None or resourcetype is None:
+				continue
 
-            # # ✅ Proper CardDAV check
-            # if resourcetype.find("card:addressbook", ns) is None:
-            #     continue
+			# # ✅ Proper CardDAV check
+			# if resourcetype.find("card:addressbook", ns) is None:
+			#     continue
 
-            name = displayname.text if displayname is not None and displayname.text is not None else "Default"
-            if not name:
-                name = "Default"
+			name = displayname.text if displayname is not None and displayname.text is not None else "Default"
+			if not name:
+				name = "Default"
 
-            server_books[href.text] = name
+			server_books[href.text] = name
 
-        # 🔵 Step 2: Map existing rows
-        existing_books = {row.url: row for row in self.dav_address_books}
-        # 🔵 Step 3: Add or update
-        for url, name in server_books.items():
-            if url in existing_books:
-                # ✅ Update name only, keep user flags
-                existing_books[url].address_book_name = name
-            else:
-                # ➕ New address book
-                self.append("dav_address_books", {
-                    "address_book_name": name,
-                    "url": url
-                })
+		# 🔵 Step 2: Map existing rows
+		existing_books = {row.url: row for row in self.dav_address_books}
+		# 🔵 Step 3: Add or update
+		for url, name in server_books.items():
+			if url in existing_books:
+				# ✅ Update name only, keep user flags
+				existing_books[url].address_book_name = name
+			else:
+				# + New address book
+				self.append("dav_address_books", {"address_book_name": name, "url": url})
 
-        # 🔵 Step 4: Remove deleted ones
-        self.dav_address_books = [
-            row for row in self.dav_address_books
-            if row.url and row.address_book_name and row.url in server_books
-        ]
+		# 🔵 Step 4: Remove deleted ones
+		self.dav_address_books = [
+			row
+			for row in self.dav_address_books
+			if row.url and row.address_book_name and row.url in server_books
+		]
 
-        # 🔵 Step 5: Save to persist selections
-        self.save(ignore_permissions=True)
+		# 🔵 Step 5: Save to persist selections
+		self.save(ignore_permissions=True)
 
-    @frappe.whitelist()
-    def update_address_book_list(self):
-        self.fetch_and_store_address_books()
-        self.save(ignore_permissions=True, ignore_version=True)
+	@frappe.whitelist()
+	def update_address_book_list(self):
+		self.fetch_and_store_address_books()
+		self.save(ignore_permissions=True, ignore_version=True)
+
 
 @frappe.whitelist()
-def get_default_address_book(dav_account):
+def get_default_address_book(dav_account: str | None):
 	if not dav_account:
 		return []
 
@@ -150,34 +169,44 @@ def get_default_address_book(dav_account):
 
 	return [{"name": row.address_book_name, "value": row.url} for row in doc.dav_address_books]
 
+
 @frappe.whitelist()
-def get_address_books(dav_account):
+def get_address_books(dav_account: str | None):
 	if not dav_account:
 		return []
 	doc = frappe.get_doc("DAV Account", dav_account)
-	return [{"name": row.address_book_name, "value": row.url, "is_default": row.is_default} for row in doc.dav_address_books]
+	return [
+		{"name": row.address_book_name, "value": row.url, "is_default": row.is_default}
+		for row in doc.dav_address_books
+	]
+
 
 @frappe.whitelist()
 def get_default_dav_account():
-	dav = frappe.get_doc("DAV Account", {"default": 1, "enabled": 1}) or frappe.get_doc("DAV Account", {"default": 0, "enabled": 1}) or None
+	dav = (
+		frappe.get_doc("DAV Account", {"default": 1, "enabled": 1})
+		or frappe.get_doc("DAV Account", {"default": 0, "enabled": 1})
+		or None
+	)
 	if dav:
 		return dav.name
 	return None
+
 
 from urllib.parse import urljoin
 
 
 @frappe.whitelist()
-def create_address_book(docname, address_book_name):
+def create_address_book(docname: str, address_book_name: str):
 	doc = frappe.get_doc("DAV Account", docname)
 
 	if not doc.base_url or not doc.username:
-		frappe.throw("DAV credentials missing")
+		frappe.throw(_("DAV credentials missing"))
 
 	username = doc.username
 	password = get_decrypted_password("DAV Account", doc.name, "app_password")
 	if not password:
-		frappe.throw("DAV credentials missing")
+		frappe.throw(_("DAV credentials missing"))
 
 	base_url = doc.base_url.rstrip("/") + "/"
 
@@ -198,7 +227,7 @@ def create_address_book(docname, address_book_name):
 		None,
 	)
 	if existing_book:
-		frappe.msgprint(f"Address book '{address_book_name}' already exists locally")
+		frappe.msgprint(_("Address book '{0}' already exists locally").format(address_book_name))
 		return True
 
 	headers = {"Content-Type": "application/xml; charset=utf-8"}
@@ -232,7 +261,7 @@ def create_address_book(docname, address_book_name):
 		add_to_child_table = True
 	elif response.status_code == 405:
 		# Already exists on server
-		frappe.msgprint(f"Address book '{address_book_name}' already exists on server")
+		frappe.msgprint(_("Address book '{0}' already exists on server").format(address_book_name))
 
 		existing_child = next(
 			(x for x in doc.dav_address_books if x.url and x.url.rstrip("/") == create_url.rstrip("/")), None
@@ -241,7 +270,9 @@ def create_address_book(docname, address_book_name):
 		if not existing_child:
 			add_to_child_table = True
 	else:
-		frappe.throw(f"Failed to create address book: {response.status_code} - {response.text}")
+		frappe.throw(
+			_("Failed to create address book: {0} - {1}").format(response.status_code, response.text)
+		)
 	proper_url = (
 		create_url.replace(base_url, "/").rstrip("/") if create_url.startswith(base_url) else create_url
 	)
@@ -265,17 +296,17 @@ def get_address_book_url(doc, address_book_name):
 
 
 @frappe.whitelist()
-def delete_address_book(docname, address_book_url):
+def delete_address_book(docname: str, address_book_url: str):
 	doc = frappe.get_doc("DAV Account", docname)
 	url_to_delete = address_book_url
 
 	if not url_to_delete:
-		frappe.throw("Address book not found")
+		frappe.throw(_("Address book not found"))
 
 	username = doc.username
 	password = get_decrypted_password("DAV Account", doc.name, "app_password")
 	if not password:
-		frappe.throw("DAV credentials missing")
+		frappe.throw(_("DAV credentials missing"))
 
 	headers = {"Content-Type": "application/xml; charset=utf-8"}
 
@@ -287,5 +318,6 @@ def delete_address_book(docname, address_book_url):
 	)
 
 	if response.status_code not in [200, 204]:
-		frappe.throw(f"Failed to delete address book: {response.status_code} - {response.text}")
-
+		frappe.throw(
+			_("Failed to delete address book: {0} - {1}").format(response.status_code, response.text)
+		)

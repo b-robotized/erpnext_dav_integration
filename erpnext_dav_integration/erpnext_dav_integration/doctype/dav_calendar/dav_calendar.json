@@ -8,7 +8,8 @@
  "field_order": [
   "dav_account",
   "column_break_kvho",
-  "dav_calendar"
+  "dav_calendar",
+  "dav_calendar_url"
  ],
  "fields": [
   {
@@ -30,12 +31,19 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "DAV Calendar"
+  },
+  {
+   "depends_on": "eval:doc.dav_account",
+   "fieldname": "dav_calendar_url",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "DAV Calendar Url"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-10 13:25:06.501574",
+ "modified": "2026-07-06 16:40:22.661856",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV Calendar",

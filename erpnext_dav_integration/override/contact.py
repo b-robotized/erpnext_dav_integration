@@ -15,10 +15,9 @@ def sync_contact_to_carddav(doc, method):
 			dav = frappe.get_doc("DAV Account", doc.custom_dav_account)
 		if method == "before_insert" and not doc.custom_enable_dav_sync:
 			return
-		elif method == "before_insert" and doc.custom_enable_dav_sync and dav.auto_sync_contacts:
+		elif method == "before_insert" and doc.custom_enable_dav_sync:
 			doc.dav_account = dav.name
-		if not dav.auto_sync_contacts:
-			return
+
 		if frappe.flags.in_scheduled_job:
 			return
 
@@ -39,22 +38,28 @@ def sync_contact_to_carddav(doc, method):
 			else:
 				create_contact(dav, doc, vcard, password)
 		except Exception as e:
-			frappe.log_error(f"Error syncing contact {doc.name} to CardDAV: {str(e)}", "DAV Sync Error")
+			frappe.log_error(f"Error syncing contact {doc.name} to CardDAV: {e!s}", "DAV Sync Error")
 			doc.custom_sync_status = "Failed"
 			doc.custom_last_sync = frappe.utils.now()
 			raise
-		for email in doc.get("email_ids",[]) or []:
+		for email in doc.get("email_ids", []) or []:
 			if email.get("email_id"):
-				if frappe.db.exists("Contact Email", {"email_id": email.get("email_id"), "parent": ["!=", doc.name]}):
-					frappe.db.sql("""
+				if frappe.db.exists(
+					"Contact Email", {"email_id": email.get("email_id"), "parent": ["!=", doc.name]}
+				):
+					frappe.db.sql(
+						"""
 						UPDATE `tabContact Email`
 						SET `custom_duplicate` = 'Yes'
 						WHERE email_id = %s
-					""", (email.get("email_id"),))
+					""",
+						(email.get("email_id"),),
+					)
 					email.custom_duplicate = "Yes"
 	except Exception:
 		frappe.log_error(frappe.get_traceback(), "DAV Sync Error")
 		raise
+
 
 def validate_contact(doc, method):
 	if doc.is_new():
@@ -72,6 +77,7 @@ def validate_contact(doc, method):
 		or old_doc.custom_dav_address_book_url != doc.custom_dav_address_book_url
 	):
 		delete_contact_from_carddav(old_doc, method)
+
 
 def update_contact(dav, doc, vcard, password):
 	contact_url = doc.custom_vcard_url
@@ -109,7 +115,6 @@ def create_contact(dav, doc, vcard, password):
 	doc.custom_sync_status = "Success"
 	doc.custom_last_sync = frappe.utils.now()
 	doc.custom_vcard_url = contact_url
-
 
 
 def _get_base_url(dav, doc):

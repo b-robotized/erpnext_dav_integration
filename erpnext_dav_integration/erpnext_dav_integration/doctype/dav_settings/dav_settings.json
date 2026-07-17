@@ -1,0 +1,56 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-09 10:50:55.909471",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "caldav_sync_past_days",
+  "column_break_visi",
+  "caldav_sync_future_days"
+ ],
+ "fields": [
+  {
+   "default": "30",
+   "fieldname": "caldav_sync_past_days",
+   "fieldtype": "Int",
+   "label": "CALDAV Sync Past Days"
+  },
+  {
+   "fieldname": "column_break_visi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "365",
+   "fieldname": "caldav_sync_future_days",
+   "fieldtype": "Int",
+   "label": "CALDAV Sync Future Days"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-09 10:52:51.953707",
+ "modified_by": "Administrator",
+ "module": "Erpnext Dav Integration",
+ "name": "DAV Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

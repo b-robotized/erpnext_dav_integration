@@ -17,20 +17,19 @@
   "column1",
   "verify_tls",
   "request_timeout_s",
+  "default_share_link_expire_in",
   "section_endpoints",
   "webdav_root_url",
   "cardav_configurations_section",
-  "default_addressbook_url",
-  "column_break_vpwb",
-  "auto_delete_carddav_contacts",
   "auto_sync_contacts",
+  "auto_delete_carddav_contacts",
+  "default_addressbook_url",
   "section_break_jjex",
   "dav_address_books",
   "caldav_configuration_section",
-  "default_calendar_url",
-  "column_break_plxz",
-  "auto_delete_caldav_events",
   "auto_sync_events",
+  "auto_delete_caldav_events",
+  "default_calendar_url",
   "section_break_yjli",
   "available_calendars",
   "discover_calendars_btn"
@@ -101,6 +100,7 @@
   {
    "fieldname": "section_endpoints",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Endpoint Overrides (optional)"
   },
   {
@@ -115,6 +115,7 @@
    "description": "e.g./remote.php/dav/principals",
    "fieldname": "default_calendar_url",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "CalDAV Calendar Home"
   },
   {
@@ -122,6 +123,7 @@
    "description": "e.g./remote.php/dav/addressbooks",
    "fieldname": "default_addressbook_url",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "CardDAV AddressBook Home"
   },
   {
@@ -140,6 +142,7 @@
    "collapsible": 1,
    "fieldname": "caldav_configuration_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "CalDAV Configuration"
   },
   {
@@ -154,10 +157,6 @@
    "fieldname": "discover_calendars_btn",
    "fieldtype": "Button",
    "label": "Discover Calendars"
-  },
-  {
-   "fieldname": "column_break_plxz",
-   "fieldtype": "Column Break"
   },
   {
    "default": "0",
@@ -182,11 +181,8 @@
    "collapsible": 1,
    "fieldname": "cardav_configurations_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "CarDAV Configurations"
-  },
-  {
-   "fieldname": "column_break_vpwb",
-   "fieldtype": "Column Break"
   },
   {
    "default": "0",
@@ -207,12 +203,18 @@
    "fieldtype": "Check",
    "label": "Default",
    "set_only_once": 1
+  },
+  {
+   "default": "10",
+   "fieldname": "default_share_link_expire_in",
+   "fieldtype": "Int",
+   "label": "Default Share Link Expire In (Days)"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-06-10 12:09:03.498657",
+ "modified": "2026-07-14 17:27:22.042864",
  "modified_by": "Administrator",
  "module": "Erpnext Dav Integration",
  "name": "DAV Account",

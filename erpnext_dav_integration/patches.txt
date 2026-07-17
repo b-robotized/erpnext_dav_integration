@@ -6,3 +6,5 @@
 # Patches added in this section will be executed after doctypes are migrated
 erpnext_dav_integration.patches.workspace_patch
 erpnext_dav_integration.patches.enable_event_search
+erpnext_dav_integration.patches.update_dav_addressbook_url
+erpnext_dav_integration.patches.update_dav_calendar_url

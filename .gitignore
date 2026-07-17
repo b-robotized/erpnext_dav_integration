@@ -4,4 +4,5 @@
 *.swp
 tags
 node_modules
+semgrep-rules
 __pycache__

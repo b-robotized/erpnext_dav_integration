@@ -3,6 +3,7 @@
 
 frappe.ui.form.on("DAV Account", {
 	refresh(frm) {
+		if (frm.doc.owner !== frappe.session.user) return;
 		frm.add_custom_button("Create Address Book", () => {
 			frappe.prompt(
 				[
@@ -69,7 +70,6 @@ frappe.ui.form.on("DAV Account", {
 							"Another DAV Account is already marked as default. Please uncheck the default option for the other account before saving this one.",
 							"Default Account Conflict"
 						);
-						
 					}
 				},
 			});
@@ -78,6 +78,9 @@ frappe.ui.form.on("DAV Account", {
 	discover_calendars_btn(frm) {
 		frappe.call({
 			method: "discover_calendars",
+			args: {
+				skip_filtering: true,
+			},
 			doc: frm.doc,
 			callback: function (r) {
 				if (!r.exc) {
@@ -86,38 +89,5 @@ frappe.ui.form.on("DAV Account", {
 				}
 			},
 		});
-	}
-});
-
-frappe.ui.form.on("DAV Address Book", {
-	before_dav_address_books_remove(frm, cdt, cdn) {
-		const row = locals[cdt][cdn];
-		// confirmation dialog before deleting the address book
-		frappe.confirm(
-			"Are you sure you want to delete this address book? This action cannot be undone.",
-			function () {
-				// User clicked "Yes"
-				delete_address_book(frm, row);
-			},
-			function () {
-				frm.reload_doc();
-			}
-		);
 	},
 });
-
-function delete_address_book(frm, row) {
-	frappe.call({
-		method: "erpnext_dav_integration.erpnext_dav_integration.doctype.dav_account.dav_account.delete_address_book",
-		args: {
-			docname: frm.doc.name,
-			address_book_url: row.url,
-		},
-		callback: function (r) {
-			if (!r.exc) {
-				frappe.msgprint("Address Book Deleted Successfully");
-				frm.save();
-			}
-		},
-	});
-}

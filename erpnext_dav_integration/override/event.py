@@ -1,286 +1,294 @@
+import json
+
 import frappe
 from frappe import _
-from erpnext_dav_integration.caldav_sync.manager import WebDAVManager
 from frappe.desk.doctype.event.event import Event
-import json
+
+from erpnext_dav_integration.webdav_sync.manager import WebDAVManager
 
 
 class CustomEvent(Event):
-    def validate(self):
-        """
-        Called before Event is saved
-        - Detect if caldav event was modified
-        - Sync to CalDAV if needed
-        """
-        if  hasattr(self, 'caldav_account') and self.caldav_account:
-            Manager = WebDAVManager(self.caldav_account)
-            if self.caldav_event_url:
-                if not Manager.validate_dav_url(self.caldav_event_url):
-                    frappe.throw("Event is deleted from calendar or calendar URL is invalid. Please reselect calendar to sync.")
-            if self.caldav_calendar_url:
-                if not Manager.validate_dav_url(self.caldav_calendar_url):
-                    frappe.throw("Selected calendar is invalid. Please reselect calendar to sync.")
-        self.validate_event()
-        if self.create_in_caldav and not self.is_new():
-            self.after_insert()
-            return
-        super().validate()
-        # Only sync if already connected to CalDAV
-        if not self.caldav_event_id or not self.caldav_account or not self.sync_with_caldav or self.create_in_caldav:
-            return
+	def validate(self):
+		"""
+		Called before Event is saved
+		- Detect if caldav event was modified
+		- Sync to CalDAV if needed
+		"""
+		if hasattr(self, "caldav_account") and self.caldav_account:
+			Manager = WebDAVManager(self.caldav_account)
+			if self.caldav_event_url:
+				if not Manager.validate_dav_url(self.caldav_event_url):
+					frappe.throw(
+						_(
+							"Event is deleted from calendar or calendar URL is invalid. Please reselect calendar to sync."
+						)
+					)
+			if self.caldav_calendar_url:
+				if not Manager.validate_dav_url(self.caldav_calendar_url):
+					frappe.throw(_("Selected calendar is invalid. Please reselect calendar to sync."))
+		self.validate_event()
+		if self.create_in_caldav and not self.is_new():
+			self.after_insert()
+			return
+		super().validate()
+		# Only sync if already connected to CalDAV
+		if (
+			not self.caldav_event_id
+			or not self.caldav_account
+			or not self.sync_with_caldav
+			or self.create_in_caldav
+		):
+			return
 
-        auto_sync = frappe.db.get_value("DAV Account", self.caldav_account, "auto_sync_events")
+		# Check if fields changed
+		changed_fields = self._get_changed_caldav_fields()
 
-        if not auto_sync:
-            # Mark as out-of-sync for manual sync later
-            if self.has_value_changed():
-                self.caldav_sync_status = 'OutOfSync'
-                
-            return
+		if changed_fields:
+			try:
+				self._sync_to_caldav()
+			except Exception as e:
+				frappe.log_error(f"Failed to sync Event {self.name} to CalDAV: {e!s}", "CalDAV Sync Error")
+				self.caldav_sync_status = "OutOfSync"
 
-        # Check if fields changed
-        changed_fields = self._get_changed_caldav_fields()
-        
-        if changed_fields:
-            try:
-                self._sync_to_caldav()
-            except Exception as e:
-                frappe.log_error(
-                    f"Failed to sync Event {self.name} to CalDAV: {str(e)}",
-                    "CalDAV Sync Error"
-                )
-                self.caldav_sync_status = 'OutOfSync'
-                
-    def on_update(self):
-        super().on_update()
-        self.sync_event_shares()
-        
-    def on_trash(self):
-        super().on_trash()
-        self.remove_event_shares()
-    # ---------------------------
-    # 📝 AFTER_INSERT HOOK
-    # ---------------------------
-    def after_insert(self):
-        """
-        Called after Event is inserted
-        - Create new event in CalDAV if sync_to_caldav mode selected
-        """
-        self.sync_event_shares()
-        
-        if self.create_in_caldav and self.caldav_account:
-            try:
-                self._create_in_caldav()
-            except Exception as e:
-                frappe.log_error(frappe.get_traceback(), "CalDAV Create Error")
-        
-    # ---------------------------
-    # ❌ AFTER_DELETE HOOK
-    # ---------------------------
-    # def after_delete(self):
-    #     """
-    #     Called after Event is deleted
-    #     - Delete from CalDAV if it was connected
-    #     """
-        
-    #     if not self.caldav_event_id or not self.caldav_account:
-    #         return
+	def on_update(self):
+		super().on_update()
+		self.sync_event_shares()
 
-    #     # Check if auto-delete is enabled
-    #     auto_delete = frappe.db.get_value("DAV Account", self.caldav_account, "auto_delete_caldav_events")
-        
+	def on_trash(self):
+		super().on_trash()
+		self.remove_event_shares()
 
-    #     if not auto_delete:    
-    #         return
+	# ---------------------------
+	# 📝 AFTER_INSERT HOOK
+	# ---------------------------
+	def after_insert(self):
+		"""
+		Called after Event is inserted
+		- Create new event in CalDAV if sync_to_caldav mode selected
+		"""
+		self.sync_event_shares()
 
-    #     try:
-    #         self._delete_from_caldav()
-    #     except Exception as e:
+		if self.create_in_caldav and self.caldav_account:
+			try:
+				self._create_in_caldav()
+			except Exception:
+				frappe.log_error(frappe.get_traceback(), "CalDAV Create Error")
 
-    #         frappe.log_error(
-    #             _("Event deleted from ERPNext but couldn't delete from calendar: {0}").format(str(e)),  
-    #         )
-    # ---------------------------
-    # 🔗 SYNC METHODS (INTERNAL)
-    # ---------------------------
-    def _create_in_caldav(self):
-        """Create new event in CalDAV"""
+	# ---------------------------
+	# ❌ AFTER_DELETE HOOK
+	# ---------------------------
+	# def after_delete(self):
+	#     """
+	#     Called after Event is deleted
+	#     - Delete from CalDAV if it was connected
+	#     """
 
-        if not self.caldav_account:
-            frappe.throw("Please select a calendar account")
-        if frappe.flags.in_caldav_sync:
-            # Avoid recursive sync loop if create_in_caldav is set on an update
-            return
-        # Get calendar URL
-        calendar_url = frappe.db.get_value(
-            'DAV Account Calendar',
-            {'parent': self.caldav_account, 'display_name': self.selected_calendar},
-            'calendar_url'
-        )
+	#     if not self.caldav_event_id or not self.caldav_account:
+	#         return
 
-        if not calendar_url:
-            frappe.throw("Calendar not found")
+	#     # Check if auto-delete is enabled
+	#     auto_delete = frappe.db.get_value("DAV Account", self.caldav_account, "auto_delete_caldav_events")
 
-        # Create in CalDAV
-        manager = WebDAVManager(self.caldav_account)
-        result = manager.create_event_in_calendar(calendar_url, self)
-        # Update Event with CalDAV metadata
-        self.caldav_event_id = result['caldav_event_id']
-        self.caldav_event_url = result['caldav_url']
-        self.caldav_uuid = result['caldav_uuid']
-        self.caldav_etag = result.get('etag')
-        self.caldav_sync_status = 'Connected'
-        self.caldav_status = (result.get('status') or "Confirmed").title()
-        if result.get('status') == "CANCELLED":
-            self.status = "Cancelled"
-        else:
-            self.status = "Open"
-        self.caldav_sequence = 0
-        self.caldav_card_text = result.get('caldav_card_text')
-        self.caldav_created = frappe.utils.now()
+	#     if not auto_delete:
+	#         return
 
-        # Clear sync fields
-        self.create_in_caldav = 0
-        self.save(ignore_permissions=True)
+	#     try:
+	#         self._delete_from_caldav()
+	#     except Exception as e:
 
-    def _sync_to_caldav(self):
-        """Update existing event in CalDAV"""
-        
+	#         frappe.log_error(
+	#             _("Event deleted from ERPNext but couldn't delete from calendar: {0}").format(str(e)),
+	#         )
+	# ---------------------------
+	# 🔗 SYNC METHODS (INTERNAL)
+	# ---------------------------
+	def _create_in_caldav(self):
+		"""Create new event in CalDAV"""
 
-        manager = WebDAVManager(self.caldav_account)
-        result = manager.update_event_in_calendar(self)
+		if not self.caldav_account:
+			frappe.throw(_("Please select a calendar account"))
+		if frappe.flags.in_caldav_sync:
+			# Avoid recursive sync loop if create_in_caldav is set on an update
+			return
+		# Get calendar URL
+		calendar_url = frappe.db.get_value(
+			"DAV Account Calendar",
+			{"parent": self.caldav_account, "display_name": self.selected_calendar},
+			"calendar_url",
+		)
 
-        # Update ETag and sequence
-        self.caldav_etag = result['etag']
-        self.caldav_sequence = result['sequence']
-        self.caldav_sync_status = 'Connected'
-        self.caldav_card_text = result.get('caldav_card_text')
-        
-    def validate_event(doc):
-        if doc.is_new():
-            return
-        # if dav accont is changed and dav_enable_dav_sync is enabled and there is a vcard url, then we need to delete the contact from the old dav account
-        if doc.caldav_account and doc.create_in_caldav:
-            old_doc = frappe.get_doc(doc.doctype, doc.name)
-            if (old_doc.caldav_account != doc.caldav_account) or (old_doc.caldav_calendar_url != doc.caldav_calendar_url):
-                old_doc._delete_from_caldav()
-                
-    def _delete_from_caldav(self):
-        """Delete event from CalDAV"""
-        
-        manager = WebDAVManager(self.caldav_account)
-        manager.delete_event_from_calendar(self)
+		if not calendar_url:
+			frappe.throw(_("Calendar not found"))
 
-    # Event still exists in ERPNext but marked as deleted from provider
-    # (already deleted, so nothing to update)
-    def _get_changed_caldav_fields(self):
-        """
-        Check if CalDAV-relevant fields changed
-        Returns list of changed field names
-        """
-        if self.is_new():
-            return
-        caldav_fields = [
-            'subject',
-            'description',
-            'location',
-            'starts_on',
-            'ends_on',
-            'color',
-            'caldav_participants_table'
-        ]
-        changed = []
-        from_db = frappe.get_doc("Event", self.name)
-        for field in caldav_fields:
-            if self.has_value_changed(from_db.get(field), field):
-                changed.append(field)
-        return changed
+		# Create in CalDAV
+		manager = WebDAVManager(self.caldav_account)
+		result = manager.create_event_in_calendar(calendar_url, self)
+		# Update Event with CalDAV metadata
+		self.caldav_event_id = result["caldav_event_id"]
+		self.caldav_event_url = result["caldav_url"]
+		self.caldav_uuid = result["caldav_uuid"]
+		self.caldav_etag = result.get("etag")
+		self.caldav_sync_status = "Connected"
+		self.caldav_status = (result.get("status") or "Confirmed").title()
+		if result.get("status") == "CANCELLED":
+			self.status = "Cancelled"
+		else:
+			self.status = "Open"
+		self.caldav_sequence = 0
+		self.caldav_card_text = result.get("caldav_card_text")
+		self.caldav_created = frappe.utils.now()
 
-    def has_value_changed(self,db_value, field=None):
-        """
-        Check if field value changed
-        
-        Args:
-            field: Specific field to check, or None for any field
-        """
-        
-        
-        if field:
-            old_val = db_value
-            new_val = self.get(field)
-            
-            return old_val != new_val
-        else:
-            # Check all fields
-            old_self = self.load_from_db()
-            for field in self.meta.get_valid_columns():
-                if old_self.get(field) != self.get(field):
-                    return True
-        
-        return False
-    
-    def remove_event_shares(self):
-        shares = frappe.get_all(
-            "DocShare",
-            filters={
-                "share_doctype": "Event",
-                "share_name": self.name
-            },
-            pluck="name"
-        )
+		# Clear sync fields and persist them explicitly
+		self.create_in_caldav = 0
+		self.db_set(
+			{
+				"caldav_event_id": self.caldav_event_id,
+				"caldav_event_url": self.caldav_event_url,
+				"caldav_uuid": self.caldav_uuid,
+				"caldav_etag": self.caldav_etag,
+				"caldav_sync_status": self.caldav_sync_status,
+				"caldav_status": self.caldav_status,
+				"status": self.status,
+				"caldav_sequence": self.caldav_sequence,
+				"caldav_card_text": self.caldav_card_text,
+				"caldav_created": self.caldav_created,
+				"create_in_caldav": self.create_in_caldav,
+			},
+			update_modified=False,
+			commit=True,
+		)
 
-        for share in shares:
-            frappe.delete_doc("DocShare", share)
-            
-    def sync_event_shares(doc):
-        if doc.doctype != "Event":
-            return
+	def _sync_to_caldav(self):
+		"""Update existing event in CalDAV"""
 
-        users_to_share = set()
+		manager = WebDAVManager(self.caldav_account)
+		result = manager.update_event_in_calendar(self)
 
-        # 🔹 Organizer
-        if doc.caldav_organizer:
-            users_to_share.add(doc.caldav_organizer)
+		# Update ETag and sequence
+		self.caldav_etag = result["etag"]
+		self.caldav_sequence = result["sequence"]
+		self.caldav_sync_status = "Connected"
+		self.caldav_card_text = result.get("caldav_card_text")
+		self.db_set(
+			{
+				"caldav_etag": self.caldav_etag,
+				"caldav_sequence": self.caldav_sequence,
+				"caldav_sync_status": self.caldav_sync_status,
+				"caldav_card_text": self.caldav_card_text,
+			},
+			update_modified=False,
+			commit=True,
+		)
 
-        # 🔹 Participants
-        for p in doc.get("caldav_participants_table", []):
-            if p.email:
-                users_to_share.add(p.email)
+	def validate_event(doc):
+		if doc.is_new():
+			return
+		# if dav accont is changed and dav_enable_dav_sync is enabled and there is a vcard url, then we need to delete the contact from the old dav account
+		if doc.caldav_account and doc.create_in_caldav:
+			old_doc = frappe.get_doc(doc.doctype, doc.name)
+			if (old_doc.caldav_account != doc.caldav_account) or (
+				old_doc.caldav_calendar_url != doc.caldav_calendar_url
+			):
+				old_doc._delete_from_caldav()
 
-        # Remove current user (optional)
-        users_to_share.discard(doc.owner)
+	def _delete_from_caldav(self):
+		"""Delete event from CalDAV"""
 
-        # 🔹 Existing shares
-        existing_shares = frappe.get_all(
-            "DocShare",
-            filters={
-                "share_doctype": "Event",
-                "share_name": doc.name
-            },
-            fields=["name", "user"]
-        )
+		manager = WebDAVManager(self.caldav_account)
+		manager.delete_event_from_calendar(self)
 
-        existing_users = {s.user for s in existing_shares}
+	# Event still exists in ERPNext but marked as deleted from provider
+	# (already deleted, so nothing to update)
+	def _get_changed_caldav_fields(self):
+		"""
+		Check if CalDAV-relevant fields changed
+		Returns list of changed field names
+		"""
+		if self.is_new():
+			return
+		caldav_fields = [
+			"subject",
+			"description",
+			"location",
+			"starts_on",
+			"ends_on",
+			"color",
+			"caldav_participants_table",
+		]
+		changed = []
+		from_db = frappe.get_doc("Event", self.name)
+		for field in caldav_fields:
+			if self.has_value_changed(from_db.get(field), field):
+				changed.append(field)
+		return changed
 
-        # 🔹 Add new shares
-        for user in users_to_share - existing_users:
-            if frappe.db.exists("User",user):
-                try:
-                    frappe.share.add(
-                        "Event",
-                        doc.name,
-                        user=user,
-                        read=1,
-                        write=0,
-                        share=0
-                    )
-                except Exception:
-                    frappe.log_error(frappe.get_traceback(), "Share Add Failed")
+	def has_value_changed(self, db_value, field=None):
+		"""
+		Check if field value changed
 
-        # 🔹 Remove outdated shares
-        for share in existing_shares:
-            if share.user not in users_to_share:
-                try:
-                    frappe.delete_doc("DocShare", share.name)
-                except Exception:
-                    frappe.log_error(frappe.get_traceback(), "Share Remove Failed")
+		Args:
+		    field: Specific field to check, or None for any field
+		"""
+
+		if field:
+			old_val = db_value
+			new_val = self.get(field)
+
+			return old_val != new_val
+		else:
+			# Check all fields
+			old_self = self.load_from_db()
+			for field in self.meta.get_valid_columns():
+				if old_self.get(field) != self.get(field):
+					return True
+
+		return False
+
+	def remove_event_shares(self):
+		shares = frappe.get_all(
+			"DocShare", filters={"share_doctype": "Event", "share_name": self.name}, pluck="name"
+		)
+
+		for share in shares:
+			frappe.delete_doc("DocShare", share)
+
+	def sync_event_shares(doc):
+		if doc.doctype != "Event":
+			return
+
+		users_to_share = set()
+
+		# 🔹 Organizer
+		if doc.caldav_organizer:
+			users_to_share.add(doc.caldav_organizer)
+
+		# 🔹 Participants
+		for p in doc.get("caldav_participants_table", []):
+			if p.email:
+				users_to_share.add(p.email)
+
+		# Remove current user (optional)
+		users_to_share.discard(doc.owner)
+
+		# 🔹 Existing shares
+		existing_shares = frappe.get_all(
+			"DocShare", filters={"share_doctype": "Event", "share_name": doc.name}, fields=["name", "user"]
+		)
+
+		existing_users = {s.user for s in existing_shares}
+
+		# 🔹 Add new shares
+		for user in users_to_share - existing_users:
+			if frappe.db.exists("User", user):
+				try:
+					frappe.share.add("Event", doc.name, user=user, read=1, write=0, share=0)
+				except Exception:
+					frappe.log_error(frappe.get_traceback(), "Share Add Failed")
+
+		# 🔹 Remove outdated shares
+		for share in existing_shares:
+			if share.user not in users_to_share:
+				try:
+					frappe.delete_doc("DocShare", share.name)
+				except Exception:
+					frappe.log_error(frappe.get_traceback(), "Share Remove Failed")
